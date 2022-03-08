@@ -25,10 +25,12 @@ from tensorflow.keras import backend as K
 import seaborn as sns
 import matplotlib.pyplot as plt
 
-# ws = Workspace.from_config()
+
+
 
 # file = open("C://data_minsung/bearing/1st_test/sample.24",'r', encoding='ascii')
-Dataset = pd.DataFrame(np.random.rand(100, 8))
+Dataset = pd.DataFrame(np.random.rand(10000, 8))
+a = Dataset.__array__()
 
 dataset_name = "bearing_dataset"
 # train_ratio = 0.75
@@ -45,7 +47,6 @@ mode = 'train'
 model_dir = "./lstm_vae_model/"
 image_dir = "./lstm_vae_images/"
 
-
 def split_normalize_data(all_df):
     # row_mark = int(all_df.shape[0] * train_ratio)
     train_df = all_df[:row_mark]
@@ -57,9 +58,10 @@ def split_normalize_data(all_df):
     test_scaled = scaler.transform(np.array(test_df)[:, 1:])
     return train_scaled, test_scaled
 
-
-def reshape(da):
-    return da.reshape(da.shape[0], time_step, da.shape[1]).astype("float32")
+def reshape(input):
+    input = input.__array__()
+    return np.reshape(input, (input.shape[0], time_step, input.shape[1])).astype("float32")
+    # return da.reshape(da.shape[0], time_step, da.shape[1]).astype("float32")
 
 
 class Sampling(layers.Layer):
@@ -74,10 +76,6 @@ class Sampling(layers.Layer):
         epsilon = K.random_normal(shape=(mu.shape[0], z_dim), mean=0.0, stddev=1.0)
         return mu + epsilon * sigma
 
-    def get_config(self):
-        config = super(Sampling, self).get_config()
-        config.update({'name': self.name})
-        return config
 
 
 class Encoder(layers.Layer):
@@ -89,7 +87,8 @@ class Encoder(layers.Layer):
         # stateful = True 이면 배치 내의 i번째 샘플의 마지막 state가, 다음 배치의 i번째 initial state로 사용
         # This assumes a one-to-one mapping between samples in different successive batches. = 굳이 사용해야 하나???
         # stateful 하려면 batch_input_shape 를 첫 레이어에 넣어야 하는데 그런 부분이 없어서 에러 나올 확률이 있다
-        self.encoder_lstm = layers.LSTM(lstm_h_dim, activation='softplus', name='encoder_lstm', stateful=True)
+        self.encoder_lstm = layers.LSTM(lstm_h_dim, activation='softplus', name='encoder_lstm')
+        # self.encoder_lstm = layers.LSTM(lstm_h_dim, activation='softplus', name='encoder_lstm', stateful=True)
         self.z_mean = layers.Dense(z_dim, name='z_mean')
         self.z_logvar = layers.Dense(z_dim, name='z_log_var')
         self.z_sample = Sampling()
@@ -101,15 +100,6 @@ class Encoder(layers.Layer):
         logvar_z = self.z_logvar(hidden)
         z = self.z_sample((mu_z, logvar_z))
         return mu_z, logvar_z, z
-
-    def get_config(self):
-        config = super(Encoder, self).get_config()
-        config.update({
-            'name': self.name,
-            'z_sample': self.z_sample.get_config()
-        })
-        return config
-
 
 class Decoder(layers.Layer):
     def __init__(self, time_step, x_dim, lstm_h_dim, z_dim, name='decoder', **kwargs):
@@ -127,13 +117,6 @@ class Decoder(layers.Layer):
         mu_x = self.x_mean(hidden)
         sigma_x = self.x_sigma(hidden)
         return mu_x, sigma_x
-
-    def get_config(self):
-        config = super(Decoder, self).get_config()
-        config.update({
-            'name': self.name
-        })
-        return config
 
 
 loss_metric = keras.metrics.Mean(name='loss')
@@ -153,34 +136,39 @@ class LSTM_VAE(keras.Model):
 
         var_z = K.exp(logvar_z)
         # 원래 vae loss와 크게 다르지 않음
-        kl_loss = K.mean(-0.5 * K.sum(var_z - logvar_z + tf.square(1 - mu_z), axis=1), axis=0)
-        self.add_loss(kl_loss)
+        print("shape of 1.var_z, 2.logvar_z, 3.mu_z", np.shape(var_z), np.shape(logvar_z), np.shape(mu_z))
+
+
+        # kl_loss = K.mean(-0.5 * K.sum(var_z - logvar_z + tf.square(1 - mu_z), axis=1), axis=0)
+        kl_loss = tf.reduce_mean(-0.5 * tf.reduce_sum(var_z - logvar_z + tf.square(1 - mu_z), axis=1), axis=0, name='kl_loss')
+
+        # 상속관계에 있는 모듈의 add_loss
+        self.add_loss(lambda: kl_loss)
 
         dist = tfp.distributions.Normal(loc=mu_x, scale=tf.abs(sigma_x))
         log_px = -dist.log_prob(inputs)
 
         return mu_x, sigma_x, log_px
 
-    # # 굳이 당장 필요없으므로 주석
-    # def get_config(self):
-    #     config = {
-    #         'encoder': self.encoder.get_config(),
-    #         'decoder': self.decoder.get_config(),
-    #         'name': self.name
-    #     }
-    #     return config
+
 
     # gaussian 가정했을 때의 reconstruct loss
     def reconstruct_loss(self, x, mu_x, sigma_x):
         var_x = K.square(sigma_x)
         reconst_loss = -0.5 * K.sum(K.log(var_x), axis=2) + K.sum(K.square(x - mu_x) / var_x, axis=2)
+        print("recons loss shape:", np.shape(reconst_loss))
         reconst_loss = K.reshape(reconst_loss, shape=(x.shape[0], 1))
-        return K.mean(reconst_loss, axis=0)
+        # return K.mean(reconst_loss, axis=0)
+        return tf.reduce_mean(reconst_loss, axis=0, name='reconstruct')
 
     def mean_log_likelihood(self, log_px):
+        print("log_px shape", np.shape(log_px))
         log_px = K.reshape(log_px, shape=(log_px.shape[0], log_px.shape[2]))
-        mean_log_px = K.mean(log_px, axis=1)
-        return K.mean(mean_log_px, axis=0)
+        # mean_log_px = K.mean(log_px, axis=1)
+        mean_log_px = tf.reduce_mean(log_px, axis=1, name='mean_log_likeli_px')
+
+        # return K.mean(mean_log_px, axis=0)
+        return tf.reduce_mean(mean_log_px, axis=0, name='meanOfmean')
 
     def train_step(self, data):
         if isinstance(data, tuple):
@@ -189,8 +177,9 @@ class LSTM_VAE(keras.Model):
             x = data
 
         with tf.GradientTape() as tape:
-            mu_x, sigma_x, log_px = self(x, training=True)
+            mu_x, sigma_x, log_px = self(x)
             loss = self.reconstruct_loss(x, mu_x, sigma_x)
+            # add_loss 통해 추가되었던 KLD loss를 추가
             loss += sum(self.losses)
             mean_log_px = self.mean_log_likelihood(log_px)
 
@@ -260,7 +249,9 @@ def main():
         train_dataset = data.Dataset.from_tensor_slices(train_X)
         train_dataset = train_dataset.shuffle(buffer_size=1024).batch(batch_size, drop_remainder=True)
 
+        print("히스토리 전")
         history = model.fit(train_dataset, epochs=epoch_num, shuffle=False).history
+        print("마지노선_--------------------")
         model.summary()
         plot_loss_moment(history)
         save_model(model)
