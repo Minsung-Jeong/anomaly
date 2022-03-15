@@ -1,3 +1,5 @@
+# https://github.com/paya54/Anomaly_Detect_LSTM_VAE/blob/master/lstm_vae.py
+
 import numpy as np
 np.random.seed(0)
 import pandas as pd
@@ -50,6 +52,7 @@ def reshape(da):
 
 class Sampling(layers.Layer):
     def __init__(self, name='sampling_z'):
+        # Sampling 의 상위 클래스로 가는 것이므로 layers.Layer의 메소드 사용하는 것
         super(Sampling, self).__init__(name=name)
 
     def call(self, inputs):
@@ -133,7 +136,10 @@ class LSTM_VAE(keras.Model):
         mu_x, sigma_x = self.decoder(z)
 
         var_z = K.exp(logvar_z)
-        kl_loss = K.mean(-0.5 * K.sum(var_z - logvar_z + tf.square(1 - mu_z), axis=1), axis=0)
+        # kl_loss = K.mean(-0.5 * K.sum(var_z - logvar_z + tf.square(1 - mu_z), axis=1), axis=0)
+        kl_loss = tf.reduce_mean(-0.5 * tf.reduce_sum(var_z - logvar_z + tf.square(1 - mu_z), axis=1), axis=0,
+                                 name='kl_loss')
+
         self.add_loss(kl_loss)
 
         dist = tfp.distributions.Normal(loc=mu_x, scale=tf.abs(sigma_x))

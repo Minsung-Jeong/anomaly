@@ -165,9 +165,11 @@ class LSTM_VAE(keras.Model):
         # kl_loss = tf.reduce_mean(-0.5 * tf.zeros_like(mu_z))
         print("kl_loss=========", kl_loss)
         # 상속관계에 있는 모듈의 add_loss
-        # self.add_loss(kl_loss)
-        self.add_loss(lambda: kl_loss)
 
+
+        # 이 식(람다)이 문제
+        # self.add_loss(lambda: kl_loss)
+        self.add_loss(kl_loss)
         dist = tfp.distributions.Normal(loc=mu_x, scale=tf.abs(sigma_x))
         log_px = -dist.log_prob(inputs)
 
