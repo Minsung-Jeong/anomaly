@@ -113,8 +113,8 @@ def log_normal_pdf(sample, mean, logvar, raxis=1):
 
 def compute_loss(model, x):
     mean, logvar = model.encode(x)
-    z = model.ize(mean, logvar)
-    x_logit = modelreparameter.decode(z)
+    z = model.reparameterize(mean, logvar)
+    x_logit = model.decode(z)
     # reconstruction error 부분이 cross entropy = decoder에 대해 베르누이를 가정했다.
     # 가우시안으로 하면 MSE 가 error가 될 것
     cross_ent = tf.nn.sigmoid_cross_entropy_with_logits(logits=x_logit, labels = x)

@@ -1,11 +1,5 @@
-# 변경사항
-# 'def call' 로 되어있던 부분 'def __call__' 로 변경(왜 이런 오류가 있는 거지? 오류가 아닌가? 파이썬 버전 차이인가?, 저 형식으로도 되는 건가?)
-
 # def __init__ 은 생성자
 # def __call__ 은 인스턴스 호출 후,
-
-# from azureml.core.authentication import ServicePrincipalAuthentication
-# from azureml.core import Workspace, Dataset
 
 import numpy as np
 
@@ -14,7 +8,6 @@ import pandas as pd
 from sklearn.preprocessing import MinMaxScaler
 import os
 
-os.environ["CUDA_VISIBLE_DEVICES"] = "-1"
 import tensorflow as tf
 
 tf.random.set_seed(0)
@@ -26,21 +19,19 @@ import seaborn as sns
 import matplotlib.pyplot as plt
 
 
-
-
-# file = open("C://data_minsung/bearing/1st_test/sample.24",'r', encoding='ascii')
-Dataset = pd.DataFrame(np.random.rand(10000, 8))
-a = Dataset.__array__()
+# Dataset = pd.DataFrame(np.random.rand(10000, 8))
+Dataset = np.random.rand(10000,8)
 
 dataset_name = "bearing_dataset"
 # train_ratio = 0.75
-row_mark = int(len(Dataset)*0.5)
+
+trn_size = int(len(Dataset)*0.5)
 batch_size = 10
 time_step = 1
 x_dim = 4
 lstm_h_dim = 8
 z_dim = 4
-epoch_num = 100
+epoch_num = 10
 threshold = 0.03
 
 mode = 'train'
@@ -49,8 +40,8 @@ image_dir = "./lstm_vae_images/"
 
 def split_normalize_data(all_df):
     # row_mark = int(all_df.shape[0] * train_ratio)
-    train_df = all_df[:row_mark]
-    test_df = all_df[row_mark:]
+    train_df = all_df[:trn_size]
+    test_df = all_df[trn_size:]
 
     scaler = MinMaxScaler()
 
@@ -77,7 +68,7 @@ class Sampling(layers.Layer):
 
     def call(self, inputs):
         mu, logvar = inputs
-        print('mu: ', mu)
+        # print('mu: ', mu)
         sigma = K.exp(logvar * 0.5)
         epsilon = K.random_normal(shape=(mu.shape[0], z_dim), mean=0.0, stddev=1.0)
         return mu + epsilon * sigma
@@ -139,7 +130,7 @@ class Decoder(layers.Layer):
         })
         return config
 
-
+# 학습용이 아님(찍어서 보는 용도)
 loss_metric = keras.metrics.Mean(name='loss')
 likelihood_metric = keras.metrics.Mean(name='log likelihood')
 
@@ -157,13 +148,13 @@ class LSTM_VAE(keras.Model):
 
         var_z = tf.math.exp(logvar_z)
         # 원래 vae loss와 크게 다르지 않음
-        print("shape of 1.var_z, 2.logvar_z, 3.mu_z", np.shape(var_z), np.shape(logvar_z), np.shape(mu_z))
+        # print("shape of 1.var_z, 2.logvar_z, 3.mu_z", np.shape(var_z), np.shape(logvar_z), np.shape(mu_z))
 
 
         # kl_loss = K.mean(-0.5 * K.sum(var_z - logvar_z + tf.square(1 - mu_z), axis=1), axis=0)
         kl_loss = tf.reduce_mean(-0.5 * tf.reduce_sum(var_z - logvar_z + tf.square(1 - mu_z), axis=1), axis=0, name='kl_loss')
         # kl_loss = tf.reduce_mean(-0.5 * tf.zeros_like(mu_z))
-        print("kl_loss=========", kl_loss)
+        # print("kl_loss=========", kl_loss)
         # 상속관계에 있는 모듈의 add_loss
 
 
@@ -187,13 +178,13 @@ class LSTM_VAE(keras.Model):
     def reconstruct_loss(self, x, mu_x, sigma_x):
         var_x = K.square(sigma_x)
         reconst_loss = -0.5 * K.sum(K.log(var_x), axis=2) + K.sum(K.square(x - mu_x) / var_x, axis=2)
-        print("recons loss shape:", np.shape(reconst_loss))
+        # print("recons loss shape:", np.shape(reconst_loss))
         reconst_loss = K.reshape(reconst_loss, shape=(x.shape[0], 1))
         # return K.mean(reconst_loss, axis=0)
         return tf.reduce_mean(reconst_loss, axis=0, name='reconstruct')
 
     def mean_log_likelihood(self, log_px):
-        print("log_px shape", np.shape(log_px))
+        # print("log_px shape", np.shape(log_px))
         log_px = K.reshape(log_px, shape=(log_px.shape[0], log_px.shape[2]))
         # mean_log_px = K.mean(log_px, axis=1)
         mean_log_px = tf.reduce_mean(log_px, axis=1, name='mean_log_likeli_px')
@@ -255,62 +246,116 @@ def load_model():
         model.load_weights(model_dir + 'lstem_vae_ckpt')
     return model
 
+# 0-00----------
 
-def main():
-    try:
-        # dataset = Dataset.get_by_name(ws, dataset_name)
-        dataset = Dataset
-        print("Dataset found: ", dataset_name)
-    except Exception:
-        print("Dataset not found: ", dataset_name)
-
-    all_df = dataset
-    train_scaled, test_scaled = split_normalize_data(all_df)
-    x_dim = train_scaled.shape[1]
-    print("train and test data shape after scaling: ", train_scaled.shape, test_scaled.shape)
-
-    train_X = reshape(train_scaled)
-    test_X = reshape(test_scaled)
-
-    opt = keras.optimizers.Adam(learning_rate=0.001, epsilon=1e-6, amsgrad=True)
-
-    if mode == "train":
-        model = LSTM_VAE(time_step, x_dim, lstm_h_dim, z_dim, dtype='float32')
-        model.compile(optimizer=opt)
-        train_dataset = data.Dataset.from_tensor_slices(train_X)
-        train_dataset = train_dataset.shuffle(buffer_size=1024).batch(batch_size, drop_remainder=True)
-
-        print("모델 피팅 이전")
-        history = model.fit(train_dataset, epochs=epoch_num, shuffle=False).history
-        print("마지노선_--------------------")
-        model.summary()
-        plot_loss_moment(history)
-        save_model(model)
-    elif mode == "infer":
-        model = load_model()
-        model.compile(optimizer=opt)
-    else:
-        print("Unknown mode: ", mode)
-        exit(1)
-
-    _, _, train_log_px = model.predict(train_X, batch_size=1)
-    train_log_px = train_log_px.reshape(train_log_px.shape[0], train_log_px.shape[2])
-    df_train_log_px = pd.DataFrame()
-    df_train_log_px['log_px'] = np.mean(train_log_px, axis=1)
-    plot_log_likelihood(df_train_log_px)
-
-    _, _, test_log_px = model.predict(test_X, batch_size=1)
-    test_log_px = test_log_px.reshape(test_log_px.shape[0], test_log_px.shape[2])
-    df_log_px = pd.DataFrame()
-    df_log_px['log_px'] = np.mean(test_log_px, axis=1)
-    df_log_px = pd.concat([df_train_log_px, df_log_px])
-    df_log_px['threshold'] = 0.65
-    df_log_px['anomaly'] = df_log_px['log_px'] > df_log_px['threshold']
-    df_log_px.index = np.array(all_df)[:, 0]
-
-    df_log_px.plot(logy=True, figsize=(16, 9), color=['blue', 'red'])
-    plt.savefig(image_dir + 'anomaly_lstm_vae_' + mode + '.png')
+    # dataset = Dataset.get_by_name(ws, dataset_name)
+dataset = Dataset
+print("Dataset found: ", dataset_name)
+all_df = dataset
+train_scaled, test_scaled = split_normalize_data(all_df)
+x_dim = train_scaled.shape[1]
+print("train and test data shape after scaling: ", train_scaled.shape, test_scaled.shape)
 
 
-if __name__ == "__main__":
-    main()
+train_X = reshape(train_scaled)
+test_X = reshape(test_scaled)
+
+opt = keras.optimizers.Adam(learning_rate=0.001, epsilon=1e-6, amsgrad=True)
+
+if mode == "train":
+    model = LSTM_VAE(time_step, x_dim, lstm_h_dim, z_dim, dtype='float32')
+    model.compile(optimizer=opt)
+    train_dataset = data.Dataset.from_tensor_slices(train_X)
+    train_dataset = train_dataset.shuffle(buffer_size=1024).batch(batch_size, drop_remainder=True)
+
+    history = model.fit(train_dataset, epochs=epoch_num, shuffle=False).history
+
+    model.summary()
+    plot_loss_moment(history)
+    save_model(model)
+elif mode == "infer":
+    model = load_model()
+    model.compile(optimizer=opt)
+else:
+    print("Unknown mode: ", mode)
+    exit(1)
+
+_, _, train_log_px = model.predict(train_X, batch_size=1)
+train_log_px = train_log_px.reshape(train_log_px.shape[0], train_log_px.shape[2])
+df_train_log_px = pd.DataFrame()
+df_train_log_px['log_px'] = np.mean(train_log_px, axis=1)
+plot_log_likelihood(df_train_log_px)
+
+_, _, test_log_px = model.predict(test_X, batch_size=1)
+test_log_px = test_log_px.reshape(test_log_px.shape[0], test_log_px.shape[2])
+df_log_px = pd.DataFrame()
+df_log_px['log_px'] = np.mean(test_log_px, axis=1)
+df_log_px = pd.concat([df_train_log_px, df_log_px])
+df_log_px['threshold'] = 0.65
+df_log_px['anomaly'] = df_log_px['log_px'] > df_log_px['threshold']
+df_log_px.index = np.array(all_df)[:, 0]
+
+df_log_px.plot(logy=True, figsize=(16, 9), color=['blue', 'red'])
+plt.savefig(image_dir + 'anomaly_lstm_vae_' + mode + '.png')
+
+
+
+
+# # ------------
+# def main():
+#     try:
+#         # dataset = Dataset.get_by_name(ws, dataset_name)
+#         dataset = Dataset
+#         print("Dataset found: ", dataset_name)
+#     except Exception:
+#         print("Dataset not found: ", dataset_name)
+#
+#     all_df = dataset
+#     train_scaled, test_scaled = split_normalize_data(all_df)
+#     x_dim = train_scaled.shape[1]
+#     print("train and test data shape after scaling: ", train_scaled.shape, test_scaled.shape)
+#
+#     train_X = reshape(train_scaled)
+#     test_X = reshape(test_scaled)
+#
+#     opt = keras.optimizers.Adam(learning_rate=0.001, epsilon=1e-6, amsgrad=True)
+#
+#     if mode == "train":
+#         model = LSTM_VAE(time_step, x_dim, lstm_h_dim, z_dim, dtype='float32')
+#         model.compile(optimizer=opt)
+#         train_dataset = data.Dataset.from_tensor_slices(train_X)
+#         train_dataset = train_dataset.shuffle(buffer_size=1024).batch(batch_size, drop_remainder=True)
+#
+#         history = model.fit(train_dataset, epochs=epoch_num, shuffle=False).history
+#
+#         model.summary()
+#         plot_loss_moment(history)
+#         save_model(model)
+#     elif mode == "infer":
+#         model = load_model()
+#         model.compile(optimizer=opt)
+#     else:
+#         print("Unknown mode: ", mode)
+#         exit(1)
+#
+#     _, _, train_log_px = model.predict(train_X, batch_size=1)
+#     train_log_px = train_log_px.reshape(train_log_px.shape[0], train_log_px.shape[2])
+#     df_train_log_px = pd.DataFrame()
+#     df_train_log_px['log_px'] = np.mean(train_log_px, axis=1)
+#     plot_log_likelihood(df_train_log_px)
+#
+#     _, _, test_log_px = model.predict(test_X, batch_size=1)
+#     test_log_px = test_log_px.reshape(test_log_px.shape[0], test_log_px.shape[2])
+#     df_log_px = pd.DataFrame()
+#     df_log_px['log_px'] = np.mean(test_log_px, axis=1)
+#     df_log_px = pd.concat([df_train_log_px, df_log_px])
+#     df_log_px['threshold'] = 0.65
+#     df_log_px['anomaly'] = df_log_px['log_px'] > df_log_px['threshold']
+#     df_log_px.index = np.array(all_df)[:, 0]
+#
+#     df_log_px.plot(logy=True, figsize=(16, 9), color=['blue', 'red'])
+#     plt.savefig(image_dir + 'anomaly_lstm_vae_' + mode + '.png')
+#
+#
+# if __name__ == "__main__":
+#     main()

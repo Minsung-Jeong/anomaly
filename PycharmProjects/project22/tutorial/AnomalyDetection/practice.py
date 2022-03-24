@@ -136,10 +136,7 @@ class LSTM_VAE(keras.Model):
         mu_x, sigma_x = self.decoder(z)
 
         var_z = K.exp(logvar_z)
-        # kl_loss = K.mean(-0.5 * K.sum(var_z - logvar_z + tf.square(1 - mu_z), axis=1), axis=0)
-        kl_loss = tf.reduce_mean(-0.5 * tf.reduce_sum(var_z - logvar_z + tf.square(1 - mu_z), axis=1), axis=0,
-                                 name='kl_loss')
-
+        kl_loss = K.mean(-0.5 * K.sum(var_z - logvar_z + tf.square(1 - mu_z), axis=1), axis=0)
         self.add_loss(kl_loss)
 
         dist = tfp.distributions.Normal(loc=mu_x, scale=tf.abs(sigma_x))
