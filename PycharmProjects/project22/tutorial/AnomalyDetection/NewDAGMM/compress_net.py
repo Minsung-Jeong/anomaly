@@ -50,9 +50,13 @@ class CompressNet:
                                               activation=self.activation,
                                               name="layer_{}".format(n_layer)))
         n_layer += 1
-        decoder.add(tf.keras.layers.Dense(size,
+        decoder.add(tf.keras.layers.Dense(self.input_size,
                                           name="layer_{}".format(n_layer)))
         return decoder(z)
+
+
+
+
 
     def loss_as_feature(self, x, x_re):
         """ Loss for z_r, there are two losses
@@ -101,9 +105,13 @@ class CompressNet:
             tf.square(x - x_re), axis=1), axis=0)
 
 
-x = tf.ones([32,128, 16], dtype=tf.float32)
+# 데이터 형태에 맞는 방식으로 불가, 2차원에 입력에 맞춰진 형태
+x = tf.ones([32,180], dtype=tf.float32)
 
-model = CompressNet([16,8])
-z = model.encoder(x)
+model = CompressNet([60,30, 10, 1])
+z_c = model.encoder(x)
+z_c.shape
 x_re = model.decoder(z)
-feature = model.extract_feature(x, x_re, z)
+x_re.shape
+model.compress(x)
+

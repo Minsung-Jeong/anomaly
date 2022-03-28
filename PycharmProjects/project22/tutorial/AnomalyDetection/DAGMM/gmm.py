@@ -46,6 +46,7 @@ class GMM:
             self.sigma = sigma = tf.einsum(
                 'ikl,ikm->klm', z_centered, z_centered) / gamma_sum[:,None,None]
 
+            # 숄레스키 분해하려면 조건(대칭, semi-positive) 충족해야 함
             # Calculate a cholesky decomposition of covariance in advance
             n_features = z.shape[1]
             min_vals = tf.diag(tf.ones(n_features, dtype=tf.float32)) * 1e-6

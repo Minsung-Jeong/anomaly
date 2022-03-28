@@ -266,3 +266,21 @@ def main():
 
 if __name__ == "__main__":
     main()
+
+
+list1 = ['회사', '사무실', '라운지']
+list2 = ['대한통운', '홍대', '다과']
+list3 = ['초콜렛', '감자먹방', '고구마깡']
+
+sen1 = '감자먹방 하면 좋냐?'
+sen2 = '회사에서 홍대'
+sen3 = '초콜렛 먹으면서 다과 뺏어먹기'
+sen = [sen1, sen2, sen3]
+list = [0,0,0]
+
+import pandas as pd
+df = pd.DataFrame(sen, list)
+df.columns = ['sentence', 'list']
+
+for val in df:
+
