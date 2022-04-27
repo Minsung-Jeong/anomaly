@@ -437,3 +437,26 @@ class GMM2D:
         plt.show()
 
         return predictions
+
+
+
+# lstm enc-dec test
+# input = (samples, seq, x_dim)
+x_dim = 1
+seq_in = np.array([[0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9],
+                    [0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9],
+                    [0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9],
+                    [0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9],
+                    [0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9],
+                   ])
+seq_in = seq_in.reshape((5,9, x_dim))
+
+time_step = 9
+lstm_h_dim = 30
+
+np.shape(seq_in)
+
+enc = Encoder(time_step=time_step, x_dim=x_dim, lstm_h_dim=lstm_h_dim )
+hidden, cell = enc(seq_in)
+
+dec = Decoder(time_step=time_step, x_dim=x_dim, h_dim=lstm_h_dim, hidden=hidden, cell = cell , batch_size=5)
