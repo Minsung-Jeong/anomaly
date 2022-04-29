@@ -4,6 +4,12 @@ import tensorflow as tf
 from tensorflow.keras import Model, models, layers, optimizers, utils
 import tensorflow.keras as keras
 
+""""
+논문 그대로 구현한 버전
+encoder의 마지막 hidden이 decoder의 첫번째 hidden이 되도록
+decoder의 이전 output이 다음 input이 되는 부분 구현이 좀 복잡-> 메리트는 없음
+"""
+
 class Encoder(keras.Model):
     def __init__(self, time_step, x_dim, lstm_h_dim, batch_size=None, name='encoder', **kwargs):
         super(Encoder, self).__init__(name=name, **kwargs)
@@ -23,34 +29,27 @@ class Encoder(keras.Model):
         return hidden, cell
 
 # class Decoder(keras.Model):
-class Decoder():
-    def __init__(self, time_step, x_dim, h_dim, batch_size, hidden, cell, name='decoder', **kwargs):
-        # super(Decoder, self).__init__(name=name, **kwargs)
-
+class Decoder(keras.Model):
+    def __init__(self, time_step, x_dim, h_dim, batch_size, name='decoder', **kwargs):
+        super(Decoder, self).__init__(name=name, **kwargs)
         self.x_dim = x_dim
         self.h_dim = h_dim
         self.batch_size = batch_size
+        # self.inputs = keras.Input(shape=(time_step, x_dim), batch_size=batch_size, name='dec_input')
+        self.inputs = keras.Input(shape=(time_step, x_dim), name='dec_input')
 
-        self.h_0 = tf.convert_to_tensor(hidden)
-        self.c_0 = tf.convert_to_tensor(cell)
-
-        self.inputs = keras.Input(shape=(time_step, x_dim), batch_size=batch_size)
         self.decoder = layers.LSTM(h_dim, name='decoder_lstm', return_sequences=True)
-        self.lstm_out = self.decoder(self.inputs, initial_state=[self.h_0, self.c_0])
-
+        # self.lstm_out = self.decoder(self.inputs, initial_state=[self.h_0, self.c_0])
 
         # 논문은 linear지만 nn이 나을 것 같아서 Dense 사용
-        self.output = layers.Dense(x_dim)(self.lstm_out)
-        self.model = Model(inputs=self.inputs, outputs = self.output)
+        # self.output = layers.Dense(x_dim)(self.lstm_out)
 
-    # def get_zero_initial_state(self, inputs):
-    #     return [tf.zeros((self.batch_size, self.h_dim)),tf.zeros((self.batch_size, self.h_dim))]
-
-    def call(self, x):
-        # self.model = Model(inputs=self.inputs, outputs=)
-        # x_input = self.inputs(x)
-        # lstm_out = self.decoder(x_input)
-        # prediction = self.fc_layer(lstm_out)
+    def call(self, x, hidden, cell,):
+        h_0 = tf.convert_to_tensor(hidden)
+        c_0 = tf.convert_to_tensor(cell)
+        self.lstm_out = self.decoder(self.inputs, initial_state=[h_0, c_0])
+        output = layers.Dense(self.x_dim)(self.lstm_out)
+        self.model = Model(inputs=self.inputs, outputs=output)
         prediction = self.model(x)
         return prediction
 
