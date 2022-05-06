@@ -28,12 +28,13 @@ normal_date = X_date.drop(list(abnormal_idx)).values
 abnormal_input = X_scaled.values[list(abnormal_idx)].astype('float')
 abnormal_input = abnormal_input.reshape((len(abnormal_input), 1, abnormal_input.shape[1]))
 abnormal_date = X_date.values[list(abnormal_idx)]
-
+len(abnormal_input)
 
 # 학습, 검증, 실험용으로 나누기
 interval_n = int(len(normal_input)/10)
 interval_ab = int(len(abnormal_input)/2)
 
+# 학습 및 mean, std 생성용
 normal_df1 = normal_input[0:interval_n*9]
 normal_df2 = normal_input[interval_n*9:interval_n*10]
 
@@ -79,7 +80,7 @@ def anomaly_score(err, mean, std):
 
 AE = Lstm_AutoEncoder(seq_len=seq_len, x_dim=x_dim, h_dim=h_dim)
 AE.model.compile(optimizer='adam', loss='mse')
-AE.model.fit(normal_df1, normal_df1, epochs=300, verbose=0)
+AE.model.fit(normal_input, normal_input, epochs=300, verbose=0)
 
 n_loss_list = []
 for i in range(len(normal_df2)):
@@ -91,6 +92,34 @@ for i in range(len(abnormal_df1)):
     ex_abnormal_df = np.expand_dims(abnormal_df1[i], axis=0)
     ab_loss_list.append(AE.model.evaluate(ex_abnormal_df, ex_abnormal_df))
 
+ab_total_loss_list =[]
+for i in range(len(abnormal_input)):
+    ex_abnormal_df = np.expand_dims(abnormal_input[i], axis=0)
+    ab_total_loss_list.append(AE.model.evaluate(ex_abnormal_df, ex_abnormal_df))
+
+X_total_tst = X_scaled.values
+X_total_tst = X_total_tst.reshape(len(X_scaled), 1, 14)
+
+total_loss_list = []
+for i in range(len(X_scaled)):
+    total_data = X_total_tst
+    df = np.expand_dims(total_data[i], axis=0)
+    total_loss_list.append(AE.model.evaluate(df, df))
+
+
+
+
+np.mean(n_loss_list)
+np.mean(ab_total_loss_list)
+np.mean(total_loss_list)
+
+#
+plt.plot(ab_total_loss_list)
+plt.plot(n_loss_list, color='red')
+
+# 전체와 abnormal 비교
+# plt.plot(total_loss_list)
+# plt.scatter(x=abnormal_idx, y=ab_total_loss_list, color='red')
 
 
 

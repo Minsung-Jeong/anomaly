@@ -99,7 +99,6 @@ os.chdir('C://data_minsung/finance')
 #
 # pd.DataFrame(total_data).to_csv('./total_data.csv')
 
-
 X_load = pd.read_csv('./total_data.csv')
 X_load = X_load.values
 X = X_load[:, 2:].astype(np.float32)
@@ -131,9 +130,6 @@ def PointProcessing(x):
 sp_stock = PointProcessing(sp_stock)
 
 
-def avg_window(date, price, window_size):
-    return price
-
 window_size = 10
 
 # start_date = 윈도우 시작날짜, avg_val = 윈도우만큼 평균낸 수치
@@ -143,6 +139,9 @@ start_date = []
 for i in range(len(sp_stock)-window_size):
     avg_val.append(np.average(sp_stock[i : i + window_size]))
     start_date.append(date[i])
+
+avg_val[2]
+fluctuation[2]
 
 fluctuation = []
 for i in range(len(avg_val)-1):
@@ -193,7 +192,7 @@ last_pd = pd.DataFrame(last_np, columns=['DATE', 'SP500', 'STATUS'])
 # last_pd.to_csv('./SNP500_anomal2.csv')
 
 len(anomal_list)
-# 시각화하는 부분
+# # 시각화하는 부분
 # anomal_date = []
 # for idx in anomal_idx:
 #     anomal_date.append(start_date[idx])
@@ -202,8 +201,17 @@ len(anomal_list)
 # all_stock = pd.DataFrame(sp_stock, date)
 # anomal_stock = [sp_stock[x] for x in anomal_idx]
 # anomal_stock_pd = pd.DataFrame(anomal_stock, anomal_date)
-
+#
 # plt.plot(all_stock)
 # plt.scatter(x=anomal_date, y=anomal_stock, color='limegreen')
 
+fig = plt.figure(figsize=(16,6))
+plt.plot(sp_stock, color='black')
+plt.plot(np.arange(2048,2124), sp_stock[2048:2124], color='red' )
 
+
+x= sp['DATE']
+y_str = [float(x) for x in sp['SP500']]
+
+
+temp.values.shape
