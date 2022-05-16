@@ -203,7 +203,7 @@ len(anomal_list)
 # anomal_stock_pd = pd.DataFrame(anomal_stock, anomal_date)
 #
 # plt.plot(all_stock)
-# plt.scatter(x=anomal_date, y=anomal_stock, color='limegreen')
+# plt.`scatter`(x=anomal_date, y=anomal_stock, color='limegreen')
 
 fig = plt.figure(figsize=(16,6))
 plt.plot(sp_stock, color='black')
@@ -215,3 +215,14 @@ y_str = [float(x) for x in sp['SP500']]
 
 
 temp.values.shape
+
+# paid = 5807350
+# cost = 5697132
+# refund = 39782
+#
+# missing = paid - cost - refund
+#
+# exec1 = 250000*1.1
+# exec2 = 180000*1.1
+#
+# gap_ = exec1 - exec2

@@ -17,6 +17,7 @@ X = pd.read_csv('./total_data.csv').iloc[:,2:]
 X_date = X.iloc[:,1]
 
 X_scaled = tf.keras.utils.normalize(X, axis=1)
+temp = X_scaled.values.copy()
 
 # normal, abnormal 나누기
 # [samples, seq_len, x_dim]
@@ -80,7 +81,11 @@ def anomaly_score(err, mean, std):
 
 AE = Lstm_AutoEncoder(seq_len=seq_len, x_dim=x_dim, h_dim=h_dim)
 AE.model.compile(optimizer='adam', loss='mse')
-AE.model.fit(normal_input, normal_input, epochs=300, verbose=0)
+AE.model.fit(normal_df1, normal_df1, epochs=3000, verbose=0)
+normal_pred = AE.model.predict(normal_df2, verbose=0)
+abnormal_pred = AE.model.predict(abnormal_df2, verbose=0)
+
+
 
 n_loss_list = []
 for i in range(len(normal_df2)):
@@ -117,9 +122,10 @@ np.mean(total_loss_list)
 plt.plot(ab_total_loss_list)
 plt.plot(n_loss_list, color='red')
 
+
 # 전체와 abnormal 비교
-# plt.plot(total_loss_list)
-# plt.scatter(x=abnormal_idx, y=ab_total_loss_list, color='red')
+plt.plot(total_loss_list, color='red')
+plt.scatter(x=abnormal_idx, y=ab_total_loss_list, color='blue')
 
 
 
