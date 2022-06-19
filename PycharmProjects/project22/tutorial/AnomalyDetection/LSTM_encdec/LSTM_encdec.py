@@ -7,6 +7,7 @@ from tensorflow.keras import Model, models, layers, optimizers, utils
 import tensorflow.keras as keras
 import matplotlib.pyplot as plt
 from celluloid import Camera
+
 # (samples, seq_length, x_dim)
 x = np.array([[0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9],
                    [0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9],
