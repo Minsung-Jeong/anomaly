@@ -66,7 +66,7 @@ df_RCU.head()
 
 
 
-# 자산 수익률의 평균을 통해 y값 도출
+# 자산 수익률의 평균을 통해 y값 도출(정규화 유무에 따라 2개의 y)
 profit_col_list = [col+'_P' for col in df_RCU[RU+CU].columns]
 df_RCU[profit_col_list] = df_RCU[RU+CU].pct_change()
 df_RCU[profit_col_list] = df_RCU[profit_col_list].fillna(0)
@@ -78,11 +78,14 @@ y1 = df_RCU[profit_col_list].mean(axis=1)
 y2 = pd.DataFrame(profit_normalize, index=y1.index)
 y2 = y2.mean(axis=1)
 
-y1.mean()
+np.abs(y1).mean()
 y1.std()
 
-y2.mean()
+np.abs(y2).mean()
 y2.std()
 
 
-
+y1.max()
+y2.max()
+plt.plot(y2)
+plt.show()

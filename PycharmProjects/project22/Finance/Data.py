@@ -4,19 +4,18 @@ import os
 import matplotlib.pyplot as plt
 import pandas_datareader as pdr
 from datetime import datetime, timedelta
-import yahoo_fin.stock_info as si
 import math
 import quantstats as qs
 import matplotlib.pyplot as plt
 
 os.getcwd()
-os.chdir("C://data_minsung/finance")
-
-# 소비자 물가지수
-cpi = pd.read_csv('./ConsumPIAUCSL_M.csv')
-col = cpi.columns
-cpi_change = cpi.CPIAUCSL.pct_change()
-plt.plot(cpi.DATE, cpi_change)
+# os.chdir("C://data_minsung/finance")
+#
+# # 소비자 물가지수
+# cpi = pd.read_csv('./ConsumPIAUCSL_M.csv')
+# col = cpi.columns
+# cpi_change = cpi.CPIAUCSL.pct_change()
+# plt.plot(cpi.DATE, cpi_change)
 
 # pd_datareader
 start_day = datetime(2008,1,1) # 시작일
