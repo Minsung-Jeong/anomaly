@@ -94,9 +94,10 @@ df_RCU.head()
 df_RCU = df_RCU[start_day:end_day]
 
 # 매월 말일 데이터만 추출(리밸런싱에 사용), first/last 가능
-df_RCU = df_RCU.resample(rule='M').last()
+df_RCU_m = df_RCU.resample(rule='M').last()
 
-df_RCU.columns
+# last로 하면 월말 데이터가 없을 때 그 이전 날이나 제일 늦은 날로 채워줌
+df_RCU.iloc[-577]==df_RCU_m.iloc[-29]
 
 #  VAA 전략에 맞춘 자산선택
 def select_asset(x):

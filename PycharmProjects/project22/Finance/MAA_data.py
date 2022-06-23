@@ -118,19 +118,6 @@ y2 = pd.DataFrame(profit_normalize, index=y1.index).mean(axis=1)
 y3 = df_RCU[profit_col_list].iloc[:, :4].mean(axis=1)
 
 
-
-# 카나리아 자산군
-profit_col = [col+'_P' for col in df_CA[CA].columns]
-df_CA[profit_col] = df_CA[CA].pct_change()
-
-mom_col_list = [col+'_M' for col in df_CA[CA].columns]
-df_CA[mom_col_list] = df_CA[CA].apply(lambda x: get_momentum(x), axis=1)
-
-
-# 등락률로 하는 경우와 모멘텀으로 하는 경우
-alarm_asset = df_CA[profit_col].iloc[:,0]
-alarm_asset = df_CA[mom_col_list]
-
 # 예전 수집 데이터로 x, y 예측해보기(2012/4/16~2022/4/14)
 total_data = pd.read_csv("./finance/total_data.csv")
 date = total_data.iloc[:,0]
@@ -159,41 +146,31 @@ def process_total(total_data):
     for i, idx in enumerate(idx_li):
         x_.iloc[i] = X.iloc[idx]
     # breakpoint()
-    return x_, y
+    return x_, y, temp_y
 
-x_, y = process_total(total_data)
+# 카나리아 자산군
+profit_col = [col+'_P' for col in df_CA[CA].columns]
+df_CA[profit_col] = df_CA[CA].pct_change()
 
+mom_col_list = [col+'_M' for col in df_CA[CA].columns]
+df_CA[mom_col_list] = df_CA[CA].apply(lambda x: get_momentum(x), axis=1)
+
+
+# 등락률로 하는 경우와 모멘텀으로 하는 경우 선택
+# alarm_asset = df_CA[profit_col].iloc[:,0]
+alarm_asset = df_CA[mom_col_list]
+
+
+################## 경제지표 데이터
+x_econ, y, idx_econ = process_total(total_data)
+################## 카나리아 데이터(모멘텀)
+x_alarm = alarm_asset[date.iloc[0]:date.iloc[-1]]
 
 # 30일 이전의 경제지표로 자산 등락률 예측
 term = 30
-x_cut = x_[:-term]
+x_cut = x_econ[:-term]
+idx_x = idx_econ[:-term]
+
 y_cut = y[term:]
-
-
-def get_binary(y_analy):
-    y_binary = []
-    # 양수 1, 음수 0
-    for val in y_analy:
-        if val > 0:
-            y_binary.append(1)
-        else:
-            y_binary.append(0)
-    return y_binary
-
-# 변수별 분석(x: 카나리아, y : 개별자산 등락, 자산등락평균)
-x_alarm_temp = alarm_asset[date.iloc[0]:date.iloc[-1]]
-x_ = x_alarm_temp
-x_analy = x_[:-10]
-
-# spy_p = df_RCU[profit_col_list].iloc[:, 0][date.iloc[0]:date.iloc[-1]]
-y_analy = y[10:]
-# y_analy = spy_p[10:]
-y_binary = get_binary(y_analy)
-
-x0 = x_analy
-# plt.scatter(x0, y_binary)
-plt.scatter(x0.iloc[:,1], y_analy)
-
-
 
 
