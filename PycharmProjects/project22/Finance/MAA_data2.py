@@ -102,27 +102,6 @@ def get_momentum(x):
 
 df_RCU, df_BU, df_CA = get_price_data(RU, CU, BU, CA)
 
-def get_momentum(x):
-    temp_list = [0 for i in range(len(x.index))]
-    momentum = pd.Series(temp_list, index=x.index)
-    try:
-        # print(x.name)
-        # print(x)
-        # breakpoint()
-        before1 = df_RCU[x.name - timedelta(days=35) : x.name - timedelta(days=30)].iloc[-1][RU + CU]
-        before3 = df_RCU[x.name - timedelta(days=95) : x.name - timedelta(days=90)].iloc[-1][RU + CU]
-        before6 = df_RCU[x.name - timedelta(days=185) : x.name - timedelta(days=180)].iloc[-1][RU + CU]
-        before12 = df_RCU[x.name - timedelta(days=370) : x.name - timedelta(days=365)].iloc[-1][RU + CU]
-        momentum = 12 * (x / before1 - 1) + 4 * (x / before3 - 1) + 2 * (x / before6 - 1) + (x / before12 - 1)
-    except Exception as e:
-        # print("Error : ", str(e))
-        pass
-    return momentum
-
-
-mom_col_list = [col+'_M' for col in df_RCU[RU+CU].columns]
-df_RCU[mom_col_list] = df_RCU[RU+CU].apply(lambda x: get_momentum(x), axis=1)
-
 profit_col_list = [col+'_P' for col in df_RCU[RU+CU].columns]
 df_RCU[profit_col_list] = df_RCU[RU+CU].pct_change()
 df_RCU[profit_col_list] = df_RCU[profit_col_list].fillna(0)
@@ -156,7 +135,7 @@ def process_total(total_data):
     temp_x = X.index.values
     temp_y = y.index.strftime("%Y-%m-%d")
 
-    # x와 y가 날짜 같은 부분의 인덱스 저장(x의 인덱스)
+    # x와 y가 날짜 같은 부분의 인덱스 저장
     idx_li = []
     for i in range(len(temp_x)):
         for j in range(len(temp_y)):
@@ -187,7 +166,15 @@ x_econ, y, idx_econ = process_total(total_data)
 ################## 카나리아 데이터(모멘텀)
 x_alarm = alarm_asset[date.iloc[0]:date.iloc[-1]]
 
+# 주말 빼면 한달을 20일로 잡아서 해야함, 30일 빼면 한 달 보다 더 길게 빠지는 것!
+# x가 y보다 하루씩 더 빨라야하므로 해당 사항 반영위한 인덱싱
+# rnn 데이터 형태 위해서는 데이터 나중에 잘라야 함
+# term = 20
+# x_cut = x_econ[1:-term]
+# idx_x = idx_econ[1:-term]
 
 x_cut = x_econ[:-1]
 idx_x = idx_econ[:-1]
 y_cut = y[1:]
+
+

@@ -46,7 +46,7 @@ def get_momentum(x):
     try:
         # print(x.name)
         # print(x)
-        breakpoint()
+        # breakpoint()
         before1 = df_RCU[x.name - timedelta(days=35) : x.name - timedelta(days=30)].iloc[-1][RU + CU]
         before3 = df_RCU[x.name - timedelta(days=95) : x.name - timedelta(days=90)].iloc[-1][RU + CU]
         before6 = df_RCU[x.name - timedelta(days=185) : x.name - timedelta(days=180)].iloc[-1][RU + CU]
