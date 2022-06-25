@@ -49,7 +49,7 @@ def get_price_data(RU, CU, BU, CA):
     return df_RCU, df_BU, df_CA
 
 # 모멘텀 스코어 뽑는 함수(이건 pdr로 받아와서 바로 해야함)
-def get_momentum(x):
+def get_momentum_ca(x):
     temp_list = [0 for i in range(len(x.index))]
     momentum = pd.Series(temp_list, index=x.index)
     try:
@@ -174,18 +174,18 @@ profit_col = [col+'_P' for col in df_CA[CA].columns]
 df_CA[profit_col] = df_CA[CA].pct_change()
 
 mom_col_list = [col+'_M' for col in df_CA[CA].columns]
-df_CA[mom_col_list] = df_CA[CA].apply(lambda x: get_momentum(x), axis=1)
+# df_CA[mom_col_list] = df_CA[CA].apply(lambda x: get_momentum_ca(x), axis=1)
 
 
 # 등락률로 하는 경우와 모멘텀으로 하는 경우 선택
 # alarm_asset = df_CA[profit_col].iloc[:,0]
-alarm_asset = df_CA[mom_col_list]
+# alarm_asset = df_CA[mom_col_list]
 
 
 ################## 경제지표 데이터
 x_econ, y, idx_econ = process_total(total_data)
 ################## 카나리아 데이터(모멘텀)
-x_alarm = alarm_asset[date.iloc[0]:date.iloc[-1]]
+# x_alarm = alarm_asset[date.iloc[0]:date.iloc[-1]]
 
 
 x_cut = x_econ[:-1]

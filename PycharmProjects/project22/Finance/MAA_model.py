@@ -15,7 +15,7 @@ from sklearn.metrics import mean_absolute_error
 from sklearn.linear_model import LinearRegression
 import tensorflow as tf
 from tensorflow.keras import datasets, layers, models
-from statsmodels.tsa.arima_model import ARIMA
+# from statsmodels.tsa.arima_model import ARIMA
 
 # model = RandomForestRegressor()
 # params = {'n_estimators' : [10, 100],
@@ -111,7 +111,7 @@ def RNNmodel(x_rnn, y_rnn, trn_prop, index):
                   loss = 'mse',
                   metrics=['accuracy'])
 
-    history = model.fit(x_train, y_train, epochs=10,
+    history = model.fit(x_train, y_train, epochs=30,
                         # validation_data=(x_val, y_val)
                         )
     pred = model.predict(tf.convert_to_tensor(x_test))
