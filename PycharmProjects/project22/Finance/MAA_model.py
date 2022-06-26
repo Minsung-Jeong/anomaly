@@ -139,6 +139,10 @@ RNN_pd = pd.DataFrame(RNN_binary, index=tst_index).resample('M').mean()
 RDF_binary = get_binary(RDF_pred)
 RDF_pd = pd.DataFrame(RDF_binary, index=RDF_test.index).resample('M').mean()
 
+rnn_temp = pd.DataFrame(RNN_test, index=tst_index).resample('M').last()
+plt.plot(get_binary(rnn_temp.values))
+
+plt.show()
 # # ########################## 선형회귀 하는 부분
 # reg = LinearRegression().fit(x_train, y_train)
 # reg_pred = reg.predict(x_test)

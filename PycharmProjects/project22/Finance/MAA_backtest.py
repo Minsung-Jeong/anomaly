@@ -10,13 +10,27 @@ import numpy as np
 # 예측 수익률 (+, -) 유무로 공격자산 방어자산 선택하고
 # 각 자산군의 가장 높은 모멘텀 스코어를 뽑아서 투자 진행하기
 # binary : 양수이면 1(공격), 음수이면 0(방어)으로 설정
-decision = RNN_pd
+
+decision = RDF_pd
+# decision = RNN_pd
+plt.plot(decision)
+plt.show()
 df_RCU = df_RCU.resample('M').last()[decision.index[0]:decision.index[-1]]
 df_RCU['PRED'] = decision
 
-def select_asset(x):
+# def select_asset(x):
+#     asset = pd.Series([0,0], index=['ASSET', 'PRICE'])
+#     if x['PRED'] > 0.5:
+#         max_momentum = max(x['SPY_M'], x['VEA_M'], x['EEM_M'], x['AGG_M'])
+#     else:
+#         max_momentum = max(x['LQD_M'], x['SHY_M'], x['IEF_M'])
+#     asset['ASSET'] = x[x==max_momentum].index[0][:3]
+#     asset['PRICE'] = x[asset['ASSET']]
+#     return asset
+
+def select_asset_safe(x):
     asset = pd.Series([0,0], index=['ASSET', 'PRICE'])
-    if x['PRED'] > 0.5:
+    if x['PRED'] > 0.50 and x['SPY_M'] >0 and x['VEA_M'] > 0 and x['EEM_M'] >0 and x['AGG_M'] > 0:
         max_momentum = max(x['SPY_M'], x['VEA_M'], x['EEM_M'], x['AGG_M'])
     else:
         max_momentum = max(x['LQD_M'], x['SHY_M'], x['IEF_M'])
@@ -27,7 +41,7 @@ def select_asset(x):
 
 df_RCU.iloc[0]
 # 자산 선택 및 수익률
-df_RCU[['ASSET', 'PRICE']] = df_RCU.apply(lambda x: select_asset(x), axis=1)
+df_RCU[['ASSET', 'PRICE']] = df_RCU.apply(lambda x: select_asset_safe(x), axis=1)
 profit_col_list = [col+'_P' for col in df_RCU[RU+CU].columns]
 df_RCU[profit_col_list] = df_RCU[RU+CU].pct_change()
 
