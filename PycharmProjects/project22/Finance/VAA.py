@@ -145,13 +145,22 @@ df_RCU[['PROFIT', 'PROFIT_ACC', 'LOG_PROFIT', 'LOG_PROFIT_ACC']] = df_RCU[['PROF
 df_RCU[profit_col_list] = df_RCU[profit_col_list] * 100
 
 # 뒷부분 20개월 치만 따로 본다
-qs.reports.basic(df_RCU['PROFIT'][-27:]/100)
+# qs.reports.basic(df_RCU['PROFIT'][-27:]/100)
+qs.reports.basic(df_RCU['PROFIT'][:-1]/100)
 # qs.reports.basic(df_RCU['PROFIT']/100)
 
 
+# import os
+# os.chdir('C://data_minsung')
+# maa_log_pf = pd.read_csv('./MAA_log_profit.csv')
+# maa_log_pf = maa_log_pf.set_index('Date')
+# maa_idx = maa_log_pf.index
+# plt.plot(maa_log_pf)
+# vaa_temp_pf = df_RCU['LOG_PROFIT'][maa_idx[0]:maa_idx[-1]]
 
+vaa_temp_pf = df_RCU['PROFIT'][maa_idx[0]:maa_idx[-1]]
+qs.reports.basic(vaa_temp_pf/100)
 
-plt.plot(df_RCU['PROFIT_ACC'])
 
 # temp = df_RCU['PROFIT']
 # temp.iloc[0]

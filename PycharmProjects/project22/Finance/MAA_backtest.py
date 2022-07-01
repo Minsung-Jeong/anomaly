@@ -11,7 +11,7 @@ import numpy as np
 # 각 자산군의 가장 높은 모멘텀 스코어를 뽑아서 투자 진행하기
 # binary : 양수이면 1(공격), 음수이면 0(방어)으로 설정
 
-decision = RDF_pd
+decision = pred_average
 # decision = RNN_pd
 plt.plot(decision)
 plt.show()
@@ -30,7 +30,7 @@ df_RCU['PRED'] = decision
 
 def select_asset_safe(x):
     asset = pd.Series([0,0], index=['ASSET', 'PRICE'])
-    if x['PRED'] > 0.50 and x['SPY_M'] >0 and x['VEA_M'] > 0 and x['EEM_M'] >0 and x['AGG_M'] > 0:
+    if x['PRED'] > 0.00 and x['SPY_M'] >0 and x['VEA_M'] > 0 and x['EEM_M'] >0 and x['AGG_M'] > 0:
         max_momentum = max(x['SPY_M'], x['VEA_M'], x['EEM_M'], x['AGG_M'])
     else:
         max_momentum = max(x['LQD_M'], x['SHY_M'], x['IEF_M'])
@@ -69,5 +69,6 @@ df_RCU[['PROFIT', 'PROFIT_ACC', 'LOG_PROFIT', 'LOG_PROFIT_ACC']] = df_RCU[['PROF
                                                                            'LOG_PROFIT_ACC']] * 100
 df_RCU[profit_col_list] = df_RCU[profit_col_list] * 100
 
-
+plt.plot(df_RCU['LOG_PROFIT'])
+# df_RCU['LOG_PROFIT'].to_csv('./MAA_log_profit.csv')
 qs.reports.basic(df_RCU['PROFIT']/100)

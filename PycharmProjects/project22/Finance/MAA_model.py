@@ -9,6 +9,7 @@ import numpy as np
 from sklearn import preprocessing
 import os
 from sklearn.ensemble import RandomForestRegressor
+from sklearn.ensemble import RandomForestClassifier
 from sklearn.metrics import accuracy_score
 from sklearn.model_selection import GridSearchCV
 from sklearn.metrics import mean_absolute_error
@@ -78,6 +79,24 @@ def RDFregressor(x, y, trn_prop):
 
     return pred, mean_absolute_error(y_test, pred), y_test
 
+def RDF_CLF(x, y, trn_prop):
+    train_size = round(len(x)*trn_prop)
+    x_train = x.iloc[:train_size]
+    y_train = y.iloc[:train_size]
+
+    x_test = x.iloc[train_size:]
+    y_test = y.iloc[train_size:]
+    rf_clf1 = RandomForestClassifier(n_estimators = 100,
+                                    max_depth = 150,
+                                    min_samples_leaf = 6,
+                                    min_samples_split = 2,
+                                    random_state = 0,
+                                    n_jobs = -1)
+    rf_clf1.fit(x_train, y_train)
+    pred = rf_clf1.predict(x_test)
+
+    return pred, accuracy_score(y_test, pred), y_test
+
 #########################################  RNN 하는 부분
 # (batch, seq_len, features) : seq_len 을 일종의 window_size로 생각하면 됨
 trn_prop = 0.8
@@ -120,6 +139,8 @@ def RNNmodel(x_rnn, y_rnn, trn_prop, index):
 
 
 
+
+
 # rnn 위한 x,y값 생성
 x_rnn, idx_rnn = data_for_rnn(x_cut.values, idx_x, seq_len)
 y_rnn = y_cut[seq_len:] #seq_len 단위로 예측하다 보니 앞을 삭제해야함
@@ -128,21 +149,27 @@ y_rnn_idx = y_rnn.index
 RNN_pred, RNN_mae, RNN_test, tst_index = RNNmodel(x_rnn, y_rnn, 0.8, y_rnn_idx)
 RDF_pred, RDF_mae, RDF_test = RDFregressor(x_cut, y_cut, 0.8)
 
-plt.bar(np.arange(len(RDF_pred)),RDF_pred)
-plt.bar(RDF_test.index ,RDF_test.values)
-plt.plot(np.zeros(len(RDF_pred)))
-plt.bar(RDF_test[-50:].index, RDF_test[-50:].values)
+# y_rnn_bin = pd.DataFrame(get_binary(y_rnn.values), index=y_rnn.index)
+# y_cut_bin = pd.DataFrame(get_binary(y_cut.values), index=y_cut.index)
+# RNN_CLF_pred, RNN_CLF_acc, RNN_CLF_test, tst_CLF_index = RNNmodel(x_rnn, y_rnn_bin, 0.8, y_rnn_idx)
+# RDF_CLF_pred, RDF_CLF_acc, RDF_CLF_test = RDF_CLF(x_cut, y_cut_bin,  0.8)
 
+
+# plt.bar(np.arange(len(RDF_pred)),RDF_pred)
+# plt.bar(RDF_test.index ,RDF_test.values)
+# plt.plot(np.zeros(len(RDF_pred)))
+# plt.bar(RDF_test[-50:].index, RDF_test[-50:].values)
 
 RNN_binary = get_binary(RNN_pred)
-RNN_pd = pd.DataFrame(RNN_binary, index=tst_index).resample('M').mean()
+RNN_pd = pd.DataFrame(RNN_pred, index=tst_index).resample('M').mean()
+# RNN_pd = pd.DataFrame(RNN_binary, index=tst_index).resample('M').mean()
 RDF_binary = get_binary(RDF_pred)
-RDF_pd = pd.DataFrame(RDF_binary, index=RDF_test.index).resample('M').mean()
+RDF_pd = pd.DataFrame(RDF_pred, index=RDF_test.index).resample('M').mean()
+# RDF_pd = pd.DataFrame(RDF_binary, index=RDF_test.index).resample('M').mean()
 
-rnn_temp = pd.DataFrame(RNN_test, index=tst_index).resample('M').last()
-plt.plot(get_binary(rnn_temp.values))
+# 단순 평균통한 앙상블(soft 앙상블)
+pred_average = (RNN_pd +RDF_pd)/2
 
-plt.show()
 # # ########################## 선형회귀 하는 부분
 # reg = LinearRegression().fit(x_train, y_train)
 # reg_pred = reg.predict(x_test)
