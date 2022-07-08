@@ -35,6 +35,9 @@ from tensorflow.keras import datasets, layers, models
 # print('최적 하이퍼 파라미터: ', grid_cv.best_params_)
 # print('최고 예측 정확도: {:.4f}'.format(grid_cv.best_score_))
 # 값 바이너리화 양수면 1, 음수면 0
+from project22.tutorial.DCGAN.DCGAN import checkpoint_dir
+
+
 def get_binary(y_analy):
     y_binary = []
     # 양수 1, 음수 0
@@ -111,14 +114,20 @@ def data_for_rnn(input, idx_x, seq_len):
     return input_for_rnn, idx_x
 
 def RNNmodel(x_rnn, y_rnn, trn_prop, index):
-    train_size = round(len(x_rnn) * trn_prop)
+    checkpoint_path = 'training_1/cp-{epoch:04d}.ckpt'
+    os.chdir('C://data_minsung/finance/MAA_RNN')
+    checkpoint_dir = os.path.dirname(checkpoint_path)
 
+    cp_callback = tf.keras.callbacks.ModelCheckpoint(filepath=checkpoint_path,
+                                                 save_weights_only=True,
+                                                 verbose=1,
+                                                 period=5)
+
+    train_size = round(len(x_rnn) * trn_prop)
     x_train = tf.convert_to_tensor(x_rnn[:train_size])
     y_train = tf.convert_to_tensor(y_rnn[:train_size])
-
     x_test = tf.convert_to_tensor(x_rnn[train_size:])
     y_test = tf.convert_to_tensor(y_rnn[train_size:])
-
     model = models.Sequential()
     model.add(layers.Input(shape=(seq_len, n_feature)))
     model.add(layers.LSTM(128, activation='relu', return_sequences=True))
@@ -129,15 +138,25 @@ def RNNmodel(x_rnn, y_rnn, trn_prop, index):
     model.compile(optimizer='adam',
                   loss = 'mse',
                   metrics=['accuracy'])
-
-    history = model.fit(x_train, y_train, epochs=30,
+    history = model.fit(x_train, y_train, epochs=50,
                         # validation_data=(x_val, y_val)
+                        callbacks=[cp_callback]
                         )
     pred = model.predict(tf.convert_to_tensor(x_test))
-
     return pred, mean_absolute_error(y_test, pred),  y_test, index[train_size:]
 
-
+def create_model():
+    model = models.Sequential()
+    model.add(layers.Input(shape=(seq_len, n_feature)))
+    model.add(layers.LSTM(128, activation='relu', return_sequences=True))
+    model.add(layers.LSTM(64, activation='relu'))
+    # classify면 2개, regress면 1개로 설정하도록
+    model.add(layers.Dense(1))
+    model.summary()
+    model.compile(optimizer='adam',
+                  loss='mse',
+                  metrics=['accuracy'])
+    return model
 
 
 
@@ -146,8 +165,26 @@ x_rnn, idx_rnn = data_for_rnn(x_cut.values, idx_x, seq_len)
 y_rnn = y_cut[seq_len:] #seq_len 단위로 예측하다 보니 앞을 삭제해야함
 y_rnn_idx = y_rnn.index
 
-RNN_pred, RNN_mae, RNN_test, tst_index = RNNmodel(x_rnn, y_rnn, 0.8, y_rnn_idx)
-RDF_pred, RDF_mae, RDF_test = RDFregressor(x_cut, y_cut, 0.8)
+train_prop = 0.5
+RDF_pred, RDF_mae, RDF_test = RDFregressor(x_cut, y_cut, train_prop)
+# RNN_pred, RNN_mae, RNN_test, tst_index = RNNmodel(x_rnn, y_rnn, train_prop, y_rnn_idx)
+
+
+# 모델 load - 지저분해지므로 전체모델 저장과 load하는 방식으로 진행하기
+os.chdir('C://data_minsung/finance/MAA_RNN')
+checkpoint_path = 'training_1/cp-{epoch:04d}.ckpt'
+checkpoint_dir = os.path.dirname(checkpoint_path)
+train_size = round(len(x_rnn)*train_prop)
+
+latest = tf.train.latest_checkpoint(checkpoint_dir)
+model = create_model()
+model.load_weights(latest)
+x_test = tf.convert_to_tensor(x_rnn[train_size:])
+
+RNN_pred = model.predict(x_test)
+tst_index = y_rnn[train_size:].index
+
+
 
 # y_rnn_bin = pd.DataFrame(get_binary(y_rnn.values), index=y_rnn.index)
 # y_cut_bin = pd.DataFrame(get_binary(y_cut.values), index=y_cut.index)
@@ -167,6 +204,7 @@ RDF_binary = get_binary(RDF_pred)
 RDF_pd = pd.DataFrame(RDF_pred, index=RDF_test.index).resample('M').mean()
 # RDF_pd = pd.DataFrame(RDF_binary, index=RDF_test.index).resample('M').mean()
 
+sum(RNN_binary)/len(RNN_binary)
 # 단순 평균통한 앙상블(soft 앙상블)
 pred_average = (RNN_pd +RDF_pd)/2
 

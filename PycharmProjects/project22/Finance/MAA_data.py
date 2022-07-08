@@ -174,7 +174,7 @@ profit_col = [col+'_P' for col in df_CA[CA].columns]
 df_CA[profit_col] = df_CA[CA].pct_change()
 
 mom_col_list = [col+'_M' for col in df_CA[CA].columns]
-# df_CA[mom_col_list] = df_CA[CA].apply(lambda x: get_momentum_ca(x), axis=1)
+df_CA[mom_col_list] = df_CA[CA].apply(lambda x: get_momentum_ca(x), axis=1)
 
 
 # 등락률로 하는 경우와 모멘텀으로 하는 경우 선택

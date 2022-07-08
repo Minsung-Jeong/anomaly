@@ -38,6 +38,8 @@ def get_price_data(RU, CU, BU):
 
 df_RCU, df_BU = get_price_data(RU, CU, BU)
 
+df_RCU.index
+
 
 # 모멘텀 스코어 뽑는 함수
 def get_momentum(x):
