@@ -60,14 +60,16 @@ broken = 0
 Asset = Asset[Asset.index.month == 12]
 Asset_li = [list(x) for x in Asset.values]
 
+
 a_year = 0 # 매년 12월로 이뤄진 Asset의 index 잡아줌
 # 모멘텀 상위 자산 배분통한 수익률 도출 + 상장폐지 -99% 적용
-for i in range(len(price)):
-    p_index = price.index[i]
-    a_index = Asset.index[a_year]
+# for i in range(len(price)):
+for i in range(362):
+    p_date = price.index[i]
+    a_date = Asset.index[a_year]
     top5 = Asset_li[a_year]
     profit = 0
-    if (p_index.year == a_index.year and p_index.month == a_index.month) or (p_index.year == a_index.year+1 and p_index.month != a_index.month):
+    if (p_date.year == a_date.year and p_date.month == a_date.month) or (p_date.year == a_date.year+1 and p_date.month != a_date.month):
         for asset in top5:
             # 5개의 자산 균등분배
             # 자산값==Nan, -0.99의 수익률 배정 + 자산배분배(해당자산 -99% 처리 후 나머지 자산 1/4)
@@ -75,29 +77,43 @@ for i in range(len(price)):
 
             # price=nan이 시작되면 상폐, 첫 nan이 나오면 그 순간 top5에서 해당 자산이 다 삭제
             # 조건문은 가격이 nan일 때 모두를 고려하게 된다.
+
             if math.isnan(price.iloc[i][asset]):
-                broken += 1
+                # broken += 1
                 price.loc[pr_idx[i], asset + "_P"] = -0.99
                 print('상장폐지 {0}자산, {1}번째'.format(asset, i))
-                profit += price[profit_col].iloc[i][asset + "_P"] * (1 / (5 - broken))
-                top5 = np.delete(top5, np.where(top5 == asset))
 
+                profit += price[profit_col].iloc[i][asset + "_P"] * (1 / len(top5))
+                # 여기서 np.where 로 인덱스를 못 당겨온다
+                print(top5, asset)
+                print('같냐?', top5 == 'P')
+                print(np.where(top5 == asset))
+                print(np.delete(top5, np.where(top5 == asset)))
+                top5 = np.delete(top5, np.where(top5 == asset))
                 Asset_li[a_year] = top5
+                print('삭제후', top5, asset)
             else:
-                profit += price[profit_col].iloc[i][asset + "_P"] * (1 / 5)
+                profit += price[profit_col].iloc[i][asset + "_P"] * (1 / len(top5))
         price.loc[price.index[i], 'PROFIT'] = profit
 
     # 다음 년도로 넘어가는 로직
-    elif(p_index.year == a_index.year + 1 and p_index.month == a_index.month):
+    elif(p_date.year == a_date.year + 1 and p_date.month == a_date.month):
         a_year += 1
-        broken = 0
+        # broken = 0
+    # print('--', top5, asset)
 
 
-temp_min = np.min(price['PROFIT'].values)
-temp_price = price['PROFIT'].values
-np.where(temp_price==temp_min)
+# temp_min = np.min(price['PROFIT'].values)
+# temp_price = price['PROFIT'].values
+# np.where(temp_price==temp_min)
 
 
 plt.plot(price['PROFIT'])
 plt.plot(pd.DataFrame(np.zeros(len(price)), index=price.index))
 
+# temp = np.array([1,2,3,4,5,6,7,8,9])
+# Asset_li = [temp, temp, temp]
+#
+# for x in Asset_li[0]:
+#     print(x)
+#     Asset_li[1] = np.delete(temp, 0)
