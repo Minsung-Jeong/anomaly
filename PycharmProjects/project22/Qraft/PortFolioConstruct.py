@@ -4,16 +4,13 @@ from datetime import datetime, timedelta
 import numpy as np
 import math
 import matplotlib.pyplot as plt
-
 # 자산 종류 21개
 price = pd.read_csv('C://data_minsung/finance/Qraft/Required/Price.csv')
 price = price.set_index('Unnamed: 0')
 price.index = pd.to_datetime(price.index, format='%Y-%m-%d')
 price.index.name = 'Date'
-
 # 결측치 B:46개, N:14개, P:97개
 price.isnull().sum()
-
 """
 포트폴리오 1:
 12M-1M 상위 5개를 매달 동일비중 리밸런싱
@@ -21,12 +18,6 @@ score = (1개월전/12개월전 - 1)
 price 미존재는 종목 상장폐지 : 수익률 -99%로 대체, 해당 종목 비중 다른 종목의 비중에 비례해 분배
 다른 종목 비중 비례 분배는 매달 리밸런싱할 때는 불필요
 """
-
-# 이 구조 안 이쁜데...좀 더 이쁜 방법을 강구
-# price['A']['1981-10-31']
-# price['A'][price.iloc[10].name- timedelta(weeks=5):price.iloc[10].name- timedelta(weeks=4)]
-
-
 def get_momentum(x):
     temp_list = np.zeros(len(x.index))
     momentum = pd.Series(temp_list, index=x.index)
@@ -34,32 +25,15 @@ def get_momentum(x):
         # timedelta 월별 설정이 불가
         before1 = price[x.name - timedelta(days=35) : x.name - timedelta(days=30)].iloc[-1]
         before12 = price[x.name - timedelta(days=370) : x.name - timedelta(days=365)].iloc[-1]
-        # print(before1)
-        # print(before12)
         momentum = before1/before12 - 1
     except Exception as e:
         # print("Error : ", str(e))
         pass
     return momentum
 
-#################### 일시적으로 하는 부분
-price_col = price.columns
-
-momentum_col = [x+'_M' for x in price_col]
-price[momentum_col] =  price.apply(lambda x: get_momentum(x), axis=1)
-
-profit_col = [x+'_P' for x in price_col]
-price[profit_col] = price[price_col].pct_change()
-
-# #########################
-
-
-
 # 앞선 12개월은 모멘텀 스코어 없으므로 생략
 m_score = price.apply(lambda x: get_momentum(x), axis=1).iloc[12:]
 price = price.iloc[12:]
-
-
 
 Asset = []
 for i in range(len(m_score)):
@@ -92,15 +66,3 @@ for i in range(len(price)):
 
 plt.plot(price['PROFIT'])
 plt.plot(pd.DataFrame(np.zeros(len(price)), index=price.index))
-
-"""
-포트폴리오 2:
-12-1M 상위 5개를 매년 12월에 동일비중 리밸런싱
-"""
-
-
-
-
-"""
-포트폴리오 분석코드
-"""
