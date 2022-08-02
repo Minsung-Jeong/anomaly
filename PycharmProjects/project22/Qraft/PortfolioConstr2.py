@@ -82,20 +82,41 @@ plt.plot(pd.DataFrame(np.zeros(len(price)), index=price.index))
 #  portfolio 평가
 os.chdir("C://data_minsung/finance/Qraft")
 
+# US500 data 로 미국 시장(S&P500) 관한 정보
 market = pd.read_csv("./US500_CASH.csv")['Price'].values[::-1]
 market_profit = pd.DataFrame(market).pct_change().values[2:]
 market = pd.DataFrame(market[2:], index=price.index)
 
-def get_return(profit):
-    return sum(profit)
+# 미국 2년 채권수익률 : risk free
+bill = pd.read_csv("./DGS2.csv").values[2:,1]
 
-def get_alpha(profit, market):
-    port_prof = sum(profit)
-    market_prof = (market.iloc[-1] - market.iloc[0])/market.iloc[0]
-    return port_prof - market_prof/100
+# 포트폴리오, 시장 누적 수익률, 무위험자산 수익률
+plus1 = price['PROFIT']+1
+port_return = (plus1.cumprod()-1)[-1]
 
-def get_beta(profit, free):
+m_plus1 = market_profit+1
+market_return = (m_plus1.cumprod()-1)[-1]
+
+# 이자율이므로 12 나누고, 백분율 고려해 100나누기 => 1200
+b_plus1 = bill/1200 + 1
+bill_return = (b_plus1.cumprod()-1)[-1]
 
 
-pf_return = get_return(price['PROFIT'])
-pf_alpha = get_alpha(price['PROFIT'], market)
+def get_beta(profit, market):
+    market = np.reshape(market, (len(market),))
+    covar = np.cov(np.stack((profit, market), axis=0))
+    var = np.var(market)
+    beta = covar[0,1]/var
+    return beta
+
+port_down = []
+for x in price['PROFIT'].values:
+    if x < 0:
+        port_down.append(x)
+
+alpha = port_return - market_return
+beta = get_beta(price['PROFIT'].values, market_profit)
+# 투자자 부담 리스크를 자산 수익률이 얼마나 잘 보상하는지, 높을 수록 좋다
+# 샤프와 소르티노에 대해서도 좀 봐야하나
+sharpe = (port_return - bill_return) / np.std(price['PROFIT'])
+sortino = (port_return - bill_return) / np.std(port_down)
