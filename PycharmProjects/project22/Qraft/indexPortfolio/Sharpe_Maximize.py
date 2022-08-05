@@ -13,53 +13,23 @@ os.chdir('C://data_minsung/finance/Qraft')
 etfs = pd.read_csv('./indexPortfolio/etfs.csv')
 
 # Nan값은 가장 가까운 날의 값으로 대체 - 모두 1000인 것을 확인
-# Nan_ticker = ['TLT','EMB','Cash','VWO','DBC']
-# fill_val = []
-# for ticker in Nan_ticker:
-#     for x in etfs[ticker]:
-#         if not math.isnan(x):
-#             fill_val.append(x)
-#             break
-
 etfs = etfs.fillna(float(1000))
 etfs = etfs.set_index('Date')
-etfs_ret = etfs.pct_change(1).dropna().T
-etfs_cumret = etfs_ret.add(1).cumprod().sub(1)*100
+etfs_ret = etfs.pct_change(1).dropna()
+etfs_cumret = etfs_ret.add(1).cumprod().sub(1)
 
-
-plt.plot(etfs_cumret.iloc[0])
-
-# def rand_weights(n):
-#     ''' Produces n random weights that sum to 1 '''
-#     k = np.random.rand(n)
-#     return k / sum(k)
-#
-# # Generate a random portfolio (무작위 포트폴리오 생성)
-# def random_portfolio(returns):
-#     """
-#         Returns the mean and standard deviation of returns for a random portfolio
-#     """
-#     p = np.asmatrix(np.mean(returns, axis=1))
-#     w = np.asmatrix(rand_weights(returns.shape[0]))
-#     C = np.asmatrix(np.cov(returns))
-#
-#     mu = w * p.T
-#     sigma = np.sqrt(w * C * w.T)
-#
-#     # This recursion reduces outliers to keep plots pretty
-#     if sigma > 2:
-#         return random_portfolio(returns)
-#     return mu, sigma, w
-
+etfs_cumret.iloc[-1]
+np.mean(etfs_ret)
 
 # Minimum variance portfolio (최소 분산 포트폴리오)
+
+returns = etfs_ret.values.T
+
+
 '''
 min 1/2w'COVw
 s.t. mu'w = rp and 1'w = 1
 '''
-returns = etfs_ret.values
-
-
 def minimum_port_weight(returns):
     mean_ret = np.mean(returns, axis=1)
     cov_ret = np.cov(returns)
@@ -69,7 +39,7 @@ def minimum_port_weight(returns):
 
     # List of target portfolio returns (목표 포트폴리오 수익률 리스트)
     # mu_t = list(np.arange(0, 0.003, 0.0001))
-    mu_t = list(np.arange( 0, 0.879823, 0.01))
+    mu_t = list(np.arange(0, 0.879823, 0.01))
 
     # Convert to cvxopt matrices (cvxopt matrix로 변환)
     P = opt.matrix(cov_ret)
@@ -105,9 +75,9 @@ def minimum_port_weight(returns):
     return weights_list, mean_std_list
 
 
-weights, mean_stds = minimum_port_weight(etfs_ret.values[:,1:])
+weights, mean_stds = minimum_port_weight(etfs_ret.T)
 #To dataframe (데이타 프레임으로 변경)
-col_name = etfs_ret.T.columns + '_Weight'
+col_name = etfs_ret.columns + '_Weight'
 weights_df = pd.DataFrame(weights, columns=col_name)
 mean_stds_df = pd.DataFrame(mean_stds,columns=['Port_ret','Port_std'])
 
@@ -121,8 +91,6 @@ fig = plt.figure(figsize=(15, 8))
 plt.ylabel('mean', fontsize=12)
 plt.xlabel('std', fontsize=12)
 plt.plot(opt_stds, opt_returns, 'y-o')
-plt.xlim(0.013, 0.025)
-plt.ylim(0.001, 0.0024)
 plt.title('Minimum variance frontier for risky assets', fontsize=15)
 
 
@@ -130,7 +98,6 @@ mean_ret = np.mean(returns, axis=1)
 cov_ret = np.cov(returns)
 n = mean_ret.shape[0]
 one_array = np.ones(n)
-neg_diag = np.diag(np.diag(-1*np.ones((n,n))))
 
 # 무위험 시장에 따른 Tangency portfolios 생성
 rf = 0.0001
