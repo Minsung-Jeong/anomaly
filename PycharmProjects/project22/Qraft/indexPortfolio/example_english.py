@@ -51,3 +51,7 @@ ret_ef = np.arange(0, 0.879823, 0.01)
 vol_ef = []
 for i in ret_ef:
     ef = EfficientFrontier(mu, sigma)
+
+
+
+
