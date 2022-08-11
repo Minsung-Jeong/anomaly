@@ -1,6 +1,7 @@
 import pandas as pd
 import numpy as np
 import os
+import matplotlib.pyplot as plt
 from datetime import datetime, timedelta
 os.chdir('C://data_minsung/finance/Qraft')
 etfs = pd.read_csv('./indexPortfolio/etfs.csv').set_index('Date')
@@ -53,22 +54,38 @@ first_idx = last_idx + timedelta(days=1)
 first_idx = list(first_idx)[:-1]
 first_idx.insert(0, add_)
 
-return_li = []
+ret_li = []
 for i in range(len(first_idx)-1):
     inputs = etfs_ret.apply(lambda x: x[first_idx[i]:last_idx[i+1]])
     inputs = inputs.dropna(axis=1).T
     asset_n = inputs.index.values
 
     weight_df = get_tan_weight(inputs)
+    invest_ass = weight_df.index.values
     re_weighted = re_weight(weight_df)
 
-    in_mu = etfs_ret.apply(lambda x: x[last_idx[i]+timedelta(days=1):last_idx[i+1]])
-    in_mu = in_mu.drop(axis=1)
+    in_mu = etfs_ret.apply(lambda x: x[first_idx[i+1]:last_idx[i+1]])
+    # in_mu = in_mu.dropna(axis=1)
+    in_mu = in_mu[invest_ass]
     mu = np.matrix(np.mean(in_mu))
 
     total_return = mu @ re_weighted
-    return_li.append(total_return.values[0,0])
+    ret_li.append(total_return.values[0,0])
+
+ret_df = pd.DataFrame(ret_li, index=last_idx[1:])
+cum_ret_df = ret_df.add(1).cumprod().sub(1)
+
+plt.plot(cum_ret_df)
 
 
-# mu와 re_weighted의 싱크가 안 맞음 - 어려운 문제 아니니까 아이디어 생각해서 해결
+
+def get_mdd(x):
+    prc = pd.DataFrame((x+1).cumprod())
+    DD = -(prc.cummax()-prc)
+    MDD = DD.min()[0]
+    return MDD
+
+# 압도적으로 낮은 MDD의 원인은 비중을 0~25%로 제한했기 때문
+MDD = get_mdd(ret_df)
+
 
