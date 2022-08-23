@@ -1,41 +1,13 @@
-import pandas_datareader as pdr
 import pandas as pd
-from datetime import datetime, timedelta
-import matplotlib.pyplot as plt
-import seaborn as sns
-import math
-import quantstats as qs
 import numpy as np
-from sklearn import preprocessing
 import os
 from sklearn.ensemble import RandomForestRegressor
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.metrics import accuracy_score
-from sklearn.model_selection import GridSearchCV
 from sklearn.metrics import mean_absolute_error
-from sklearn.linear_model import LinearRegression
 import tensorflow as tf
 from tensorflow.keras import datasets, layers, models
-# from statsmodels.tsa.arima_model import ARIMA
 
-# model = RandomForestRegressor()
-# params = {'n_estimators' : [10, 100],
-#           'max_depth' : [6, 8, 10, 12],
-#           'min_samples_leaf' : [8, 12, 18],
-#           'min_samples_split' : [8, 16, 20]
-#           }
-#
-# rf_clf = RandomForestRegressor(random_state = 221, n_jobs = -1)
-# grid_cv = GridSearchCV(rf_clf,
-#                        param_grid = params,
-#                        cv = 3,
-#                        n_jobs = -1)
-# grid_cv.fit(x_train, y_train)
-#
-# print('최적 하이퍼 파라미터: ', grid_cv.best_params_)
-# print('최고 예측 정확도: {:.4f}'.format(grid_cv.best_score_))
-# 값 바이너리화 양수면 1, 음수면 0
-from project22.tutorial.DCGAN.DCGAN import checkpoint_dir
 
 
 def get_binary(y_analy):

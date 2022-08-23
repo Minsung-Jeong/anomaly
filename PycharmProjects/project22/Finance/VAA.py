@@ -131,7 +131,7 @@ df_RCU['LOG_PROFIT_ACC'] = 0
 for i in range(len(df_RCU)):
     profit = 0
     log_profit = 0
-
+    # profit은 첫번째 시점은 구할 수 없음
     if i != 0:
         profit = df_RCU[df_RCU.iloc[i - 1]['ASSET'] + '_P'].iloc[i]
         log_profit = math.log(profit + 1)
@@ -160,8 +160,8 @@ qs.reports.basic(df_RCU['PROFIT'][:-1]/100)
 # plt.plot(maa_log_pf)
 # vaa_temp_pf = df_RCU['LOG_PROFIT'][maa_idx[0]:maa_idx[-1]]
 
-vaa_temp_pf = df_RCU['PROFIT'][maa_idx[0]:maa_idx[-1]]
-qs.reports.basic(vaa_temp_pf/100)
+# vaa_temp_pf = df_RCU['PROFIT'][maa_idx[0]:maa_idx[-1]]
+# qs.reports.basic(vaa_temp_pf/100)
 
 
 # temp = df_RCU['PROFIT']
