@@ -12,8 +12,8 @@ import numpy as np
 pd.options.display.float_format = '{:.4f}'.format
 pd.set_option('display.max_columns', None)
 
-start_day = datetime(2008,1,1) # 시작일
-end_day = datetime(2022,6,12) # 종료일
+start_day = datetime(2018,1,1) # 시작일
+end_day = datetime(2022,8,12) # 종료일
 
 # RU : Risky Universe
 # CU : Cash Universe

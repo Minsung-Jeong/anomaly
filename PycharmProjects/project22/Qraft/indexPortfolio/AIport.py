@@ -14,11 +14,12 @@ etfs = pd.read_csv('./indexPortfolio/etfs.csv').set_index('Date')
 macros = pd.read_csv('./indexPortfolio/macros.csv').set_index('Unnamed: 0')
 
 """
+eda 수행
 1.etfs가 시계열 데이터 특성을 가졌는지 확인
 2. 보간법, 이상치제거, 수치변환, 다중공선성 제거, feature engineering 등
 """
-# etfs:육안으로 보아도 추세나, 계절성 내포, white noise와 거리가 먼 모양
-# 차분(difference)화 하기(데이터 정상성 부여)
+# etfs : 우상향 하는 추세 + 계절성 내포=> white noise와 거리가 먼 모양
+# etfs_ret : 차분(difference)화 하기(데이터 정상성 부여)
 
 etfs_ret = etfs.pct_change()
 etfs_ret.index = pd.to_datetime(etfs_ret.index)
@@ -127,11 +128,14 @@ pred, MAE = RNNmodel(x_trn, x_tst, y_trn, y_tst, window_size, np.shape(x_trn)[-1
 # return 예측치가 가장 높은 4가지 자산에 25%씩 자산배분
 pred = pd.DataFrame(pred, columns=y_tst.columns)
 pred.iloc[0].sort_values(ascending=False)[:4].index
-port_ret = etfs_ret.iloc[trn_size+window_size:]
-total_ret = []
+input_ret = etfs_ret.iloc[trn_size+window_size:]
 
+
+total_ret = []
 for i in range(len(pred)):
     top4 = pred.iloc[i].sort_values(ascending=False)[:4].index.values
-    total_ret.append(port_ret.iloc[i][top4].mean())
+    total_ret.append(input_ret.iloc[i][top4].mean())
 
-plt.plot(total_ret)
+result_df = pd.DataFrame(total_ret, index=input_ret.index)
+
+9471021000 / 34689845

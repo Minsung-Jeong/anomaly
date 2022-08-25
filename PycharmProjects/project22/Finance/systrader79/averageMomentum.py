@@ -35,3 +35,10 @@ for i in range(mom_len):
 
 asset_mon_val
 plt.plot(asset_month[-12:])
+
+
+# 첫날 200%, 둘째날 -80%
+1.6*0.76
+1.2*0.92
+
+126920 - 124610
