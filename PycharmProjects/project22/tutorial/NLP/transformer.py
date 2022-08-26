@@ -92,7 +92,6 @@ def make_batches(ds):
 train_batches = make_batches(train_examples)
 val_batches = make_batches(val_examples)
 
-
 """
 # positional encoding
 
