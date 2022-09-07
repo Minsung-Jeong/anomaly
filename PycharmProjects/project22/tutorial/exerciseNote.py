@@ -88,9 +88,6 @@ a = merge_sort(array)
 
 
 
-
-
-
 def merge_sort(array):
     if len(array) < 2:
         return array
@@ -117,11 +114,117 @@ array = [8,4]
 merge_sort(array)
 
 
-# 예제----------------------------------
+# bfs
+graph_list = {1: set([3, 4]),
+              3: set([1, 5, 8]),
+              4: set([1, 9]),
+              5: set([3]),
+              6: set([7]),
+              7 : set([9,6]),
+              8: set([3]),
+              9: set([4, 7])}
 
-def fib(N):
-    if N <= 1:
-        return N
-    result = fib(N-1)+fib(N-2)
-    return result
 
+def dfs(graph, root):
+    visited = []
+    stack = [root]
+
+    while stack:
+        n = stack.pop()
+        if n not in visited:
+            visited.append(n)
+            # 노드의 하위노드 - visited
+            stack += graph[n] - set(visited)
+    return visited
+
+
+
+
+
+
+
+
+# ---------------------
+n=5
+graph=[[] for _ in range(n+1)]
+graph[1].append(4)
+graph[1].append(2)
+graph[2].append(3)
+graph[2].append(4)
+graph[3].append(4)
+
+edge = [[1,4],[1,2],[2,3],[2,4],[3,4]]
+graph = {}
+for i in range(len(edge)):
+    node1, node2 = edge[i]
+    if node1 not in graph:
+        graph[node1] = node2
+    elif node2 not in graph[node1]:
+        graph[node2] = node1
+
+#----------------------------------------
+
+class tree:
+    def __init__(self, value=None):
+        if value is not None:
+            self.value = value
+        else:
+            self.value = None
+        self.right = None
+        self.left = None
+
+
+Ntree = tree(10)
+Ntree.left = tree(5)
+Ntree.left.right = tree(2)
+
+Ntree.right = tree(5)
+Ntree.right.right = tree(1)
+Ntree.right.right.left = tree(-1)
+
+
+stack = [(Ntree, Ntree.value)]
+result = float('inf')
+curr = Ntree.value
+while stack:
+    node, curr = stack.pop()
+
+
+    if node.left is None and node.right is None:
+        if result > curr:
+            result = curr
+
+    if node.left:
+        stack.append((node.left, node.left.value+curr))
+    if node.right:
+        stack.append((node.right, node.right.value+curr))
+
+import numpy as np
+data = np.array([3,1,2])
+
+
+class SparseArray:
+    def __init__(self, arr, size):
+        self.size = size
+        self.map = {}
+
+        orig_arr_size = len(arr)
+        for i, e in enumerate(arr):
+            if i >= orig_arr_size:
+                break
+            if e != 0:
+                map[i] = e
+
+
+
+
+arr  =[ 0,5,0]
+size =5
+map = {}
+
+orig_arr_size = len(arr)
+for i, e in enumerate(arr):
+    if i >= orig_arr_size:
+        break
+    if e != 0:
+        map[i] = e
