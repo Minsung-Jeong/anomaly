@@ -281,6 +281,7 @@ class tree:
                 return parent
 
 
+
 # new_tree = tree(10)
 # new_tree.left = tree(5)
 # new_tree.right = tree(30)
@@ -327,8 +328,78 @@ for i in range(len(s)):
     if len(st)+len(nd)+len(rd) == 0:
         score += 1
 
-print(score)
 
-x = bin(7)[2:]
-x
-for i in
+# 프로그래머스 중급1
+
+N = [14, 6, 5, 11, 3, 9, 2, 10]
+half = len(N)//2
+max_list = []
+
+for i in range(len(N)):
+    indices = []
+    for j in range(half):
+        if i + (2 * j) < len(N):
+            indices.append(i + (2 * j))
+        else:
+            indices.append(i + (2 * j)-len(N))
+    score = 0
+    print(indices)
+    for idx in indices:
+        score += N[idx]
+    max_list.append(score)
+
+max(max_list)
+
+
+
+
+
+
+
+
+# 프로그래머스 중급2
+n = m = 2
+x=y=0
+queries = [[2,1],[0,1],[1,1],[0,1],[2,1]]
+
+n = 2
+m = 5
+x=0
+y=1
+queries = [[3,1],[2,2],[1,1],[2,3],[0,1],[2,1]]
+
+
+answer_list = []
+for i in range(n):
+    for j in range(m):
+        now = [i, j]
+        fixed_now = now.copy()
+        for query in queries:
+            # 열감소
+            if query[0] == 0:
+                if now[1] - query[1] <= 0:
+                    now[1] = 0
+                else:
+                    now[1] = now[1] - query[1]
+            # 열증가
+            if query[0] == 1:
+                if now[1] + query[1] >= m:
+                    now[1] = m - 1
+                else:
+                    now[1] + query[1]
+            # 행감소
+            if query[0] == 2:
+                if now[0] - query[1] <= 0:
+                    now[0] = 0
+                else:
+                    now[0] = now[0] - query[1]
+            # 행증가
+            if query[0] == 3:
+                if now[0] + query[1] >= n:
+                    now[0] = n - 1
+                else:
+                    now[0] = now[0] + query[1]
+        if now == [x, y]:
+            if fixed_now not in answer_list:
+                answer_list.append(fixed_now)
+
