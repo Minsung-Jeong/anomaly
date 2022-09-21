@@ -72,6 +72,8 @@ for i in range(len(price)):
     if(p_date.year == a_date.year + 1 and p_date.month == a_date.month):
         a_year += 1
 
+
+
 plt.plot(price['PROFIT'])
 plt.plot(pd.DataFrame(np.zeros(len(price)), index=price.index))
 
