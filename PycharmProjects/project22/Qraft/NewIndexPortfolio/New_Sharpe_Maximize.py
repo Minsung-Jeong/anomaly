@@ -45,14 +45,13 @@ def re_weight(weight):
             new_temp.append(0.25)
             if denom != 0 and i+1 < len(temp_val):
                 temp_val[i+1:] = temp_val[i+1:] + diff/denom
-                print(temp_val)
         else:
             new_temp.append(temp_val[i][0])
-    return pd.DataFrame(new_temp, index=temp_idx)
+    return pd.Series(new_temp, index=temp_idx)
 
 etfs = pd.read_csv('./indexPortfolio/etfs.csv').set_index('Date')
 etfs.index = pd.to_datetime(etfs.index, format='%Y-%m-%d')
-# etfs_ret = etfs.pct_change().iloc[1:]
+etfs_ret = etfs.pct_change().iloc[1:]
 
 last_d = etfs.resample('M').last().index
 first_d = last_d[:-1] + timedelta(days=1)
@@ -61,17 +60,36 @@ first_d = first_d.insert(0, etfs.index[0])
 # pct_change은 월단위 차이를 반영하도록 구성
 monthly_return = etfs.resample('M').last().pct_change().iloc[1:]
 
-for i in range(12, len(last_d)):
-    # 12개월에 대한 관측치를 이용하여 sharpe max 도출(기간이 너무 길면 적시성 bad)
-    start = last_d[i-12]
-    end = last_d[i]
+# Sharpe max input
+# 12개월에 대한 관측치를 이용하여 sharpe max 도출(기간이 너무 길면 적시성 bad)
+# last_d 와 monthly_return의 길이가 다르기 때문에 코드상 혼란야기
+result = []
+for i in range(12, len(last_d)-1):
 
-    inputs = monthly_return[start:end].dropna(axis=1).T
-    weight = get_tan_weight(inputs, inputs.index)
-    print(weight)
+    start = last_d[i-11]
+    end = last_d[i+1]
+
+    sharpe_inputs = monthly_return[start:end].dropna(axis=1).T
+    weight = get_tan_weight(sharpe_inputs, sharpe_inputs.index)
+    # 음수 없고, 25이하로 하도록 weight 조정
+    re_weighted = re_weight(weight)
+
+    # profit of rebalance
+    profit = monthly_return.iloc[i].dropna()
+
+    temp_profit = 1
+    for asset in re_weighted.index:
+        # profit은 되는데 re_weighted는 안됨 - 이유?
+        temp_profit += profit[asset] * re_weighted[asset]
+    result.append(temp_profit)
 
 
-# macro데이터, etf 가격 데이터
-# 1.횡적 리스크 모델 활용해 포폴 비중으로 변환(Sharpe Maximized)
-# 2.neural net : label = 비중, x = macros, etfs
+port_profit = pd.Series(result, index=last_d[13:])
+port_profit_cum = pd.Series()
+
+temp_cum = [100]
+for x in result:
+    temp_cum.append(temp_cum[-1]*x)
+
+
 

@@ -138,4 +138,3 @@ for i in range(len(pred)):
 
 result_df = pd.DataFrame(total_ret, index=input_ret.index)
 
-9471021000 / 34689845
