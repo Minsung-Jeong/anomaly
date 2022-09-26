@@ -73,14 +73,15 @@ for i in range(len(first_idx)-1):
     ret_li.append(total_return.values[0,0])
 
 ret_df = pd.DataFrame(ret_li, index=last_idx[1:])
-cum_ret_df = ret_df.add(1).cumprod().sub(1)
+cum_ret_df = ret_df.add(1).cumprod()
 
 plt.plot(cum_ret_df)
 
 
 
+
 def get_mdd(x):
-    prc = pd.DataFrame((x+1).cumprod())
+    prc = pd.DataFrame(x.cumprod())
     DD = -(prc.cummax()-prc)
     MDD = DD.min()[0]
     return MDD, DD

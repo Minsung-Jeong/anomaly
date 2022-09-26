@@ -85,11 +85,20 @@ for i in range(12, len(last_d)-1):
 
 
 port_profit = pd.Series(result, index=last_d[13:])
-port_profit_cum = pd.Series()
+
 
 temp_cum = [100]
 for x in result:
     temp_cum.append(temp_cum[-1]*x)
 
 
+def get_mdd(x):
+    prc = pd.DataFrame(x.cumprod())
+    DD = -(prc.cummax()-prc)
+    MDD = DD.min()[0]
+    return MDD, DD
 
+port_profit.cumprod()
+
+# sharpe maximize + 25%이하 비중 조정이라는 조건제한을 통해 안정성이 굉장히 높아지는 효과
+mdd, dd = get_mdd(port_profit)
