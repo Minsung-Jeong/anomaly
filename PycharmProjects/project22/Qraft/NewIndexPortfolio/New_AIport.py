@@ -6,14 +6,20 @@ seq2seq, transformer 다 해보기
 import pandas as pd
 import numpy as np
 import os
-import matplotlib.pyplot as plt
-import seaborn as sns
+# import matplotlib.pyplot as plt
+# import seaborn as sns
 from datetime import datetime, timedelta
 import tensorflow as tf
 from tensorflow.keras import datasets, layers, models
 from sklearn.metrics import mean_absolute_error
-from statsmodels.stats.outliers_influence import variance_inflation_factor
+# from statsmodels.stats.outliers_influence import variance_inflation_factor
 os.chdir('C://data_minsung/finance/Qraft')
+
+from tensorflow.python.client import device_lib
+device_lib.list_local_devices()
+tf.version.VERSION
+
+
 def normalize(data):
     mean = data.mean()
     std = data.std()
@@ -98,5 +104,6 @@ x_trn, y_trn, x_trn_idx, y_trn_idx = generate_window(trn_data, seq_len)
 x_tst, y_tst, x_tst_idx, y_tst_idx = generate_window(tst_data, seq_len)
 
 # execute the model
+# 집 컴퓨터 numpy tensor 싱크 문제 있는 듯
 pred, mae = RNNmodel(x_trn, x_tst, y_trn, y_tst, seq_len, n_feature )
 
