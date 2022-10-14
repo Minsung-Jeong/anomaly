@@ -12,7 +12,7 @@ from sklearn.metrics import confusion_matrix,accuracy_score,f1_score,precision_s
 from sklearn.metrics import plot_confusion_matrix
 from sklearn.tree import DecisionTreeClassifier
 
-
+print('start')
 """
 Start
 """
@@ -85,9 +85,9 @@ X_train, X_test, y_train, y_test = train_test_split(X_resampled, y_resampled, te
 """
 # Classifier1 - Gaussian Naive Bayes
 """
-classifier = GaussianNB()
+classifier = GaussianNB( )
 classifier.fit(X_train, y_train)
- 
+
 # mean accuracy
 classifier.score(X_train, y_train).round(5)
 classifier.score(X_test, y_test).round(5)

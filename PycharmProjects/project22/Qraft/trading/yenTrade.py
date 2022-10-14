@@ -63,7 +63,7 @@ for i in range(len(total)):
         up.append(idx[i])
 
 
-# 두 곡선 간의 교점 찾는 방법ㄹ
+# 두 곡선 간의 교점 찾는 방법
 x = np.linspace(0, 10, 40)
 curve1 = -np.cos(x+10)
 curve2 = -np.cos(x)

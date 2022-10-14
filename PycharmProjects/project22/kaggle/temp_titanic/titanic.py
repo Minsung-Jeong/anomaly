@@ -12,7 +12,7 @@ train = pd.read_csv("C:/data_minsung/kaggle/titanic/train.csv")
 test = pd.read_csv("C:/data_minsung/kaggle/titanic/test.csv")
 test_label = pd.read_csv("C:/data_minsung/kaggle/titanic/gender_submission.csv")
 
-
+print('aa')
 """
 train
 """
@@ -107,7 +107,7 @@ test_pca = incre_pca.fit_transform(X_test)
 
 # Gaussian Naive Bayes - pca 사용시 성능악화
 from sklearn.naive_bayes import GaussianNB
-gaus_clf = GaussianNB()
+gaus_clf = GaussianNB( )
 gaus_clf.fit(X_train, y_train)
 gaus_preds = gaus_clf.predict(X_test)
 
