@@ -87,7 +87,7 @@ X_train, X_test, y_train, y_test = train_test_split(X_resampled, y_resampled, te
 """
 classifier = GaussianNB()
 classifier.fit(X_train, y_train)
-
+ 
 # mean accuracy
 classifier.score(X_train, y_train).round(5)
 classifier.score(X_test, y_test).round(5)
