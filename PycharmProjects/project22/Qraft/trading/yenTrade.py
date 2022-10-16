@@ -46,21 +46,33 @@ plt.show()
 
 # open이 이평선 아래로 내리고 -5일 때 매수, 이평선 위로 가고 +5이면 매도
 # +, - 절대값에 관한 것도 volatility로 해결할 수 있을 것 같음
+# mv, open, volatil 순
+w = 5
 total = pd.DataFrame()
 total["mv5"] = mv5
 total["open"] = open_df[w:]
 total["volatil"] = input["volatil"][w:]
 
-# mv, open, volatil 순
-up = []
-down = []
-idx = total.index
-for i in range(len(total)):
 
-    if total.iloc[i]["mv5"] > total.iloc[i]["open"]:
-        down.append(idx[i])
-    else:
-        up.append(idx[i])
+# 접점 찾기 로직
+x = np.arange(0, len(total))
+
+
+intersections = []
+prev_dif = 0
+x0, prev_c1, prev_c2 = None, None, None
+for x1, c1, c2 in zip(x, mv5.values, )
+
+
+# up = []
+# down = []
+# idx = total.index
+# for i in range(len(total)):
+#
+#     if total.iloc[i]["mv5"] > total.iloc[i]["open"]:
+#         down.append(idx[i])
+#     else:
+#         up.append(idx[i])
 
 
 # 두 곡선 간의 교점 찾는 방법
