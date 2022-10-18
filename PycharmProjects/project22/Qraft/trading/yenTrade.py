@@ -3,22 +3,24 @@ import matplotlib.pyplot as plt
 import numpy as np
 import math
 """
-변동성 돌파 통한 단기 스윙 
-1. 일봉 기준 range = 전일 고가 - 전일 저가
-2. "당일 가격 > 당일시가 + 전일 range" 돌파시점에 시장가 매수, 즉 threshold = 시가+전날 range
-3. 다음날 시가 청산 
+전략1 : 
+가격이 이평선 아래에서 매수, 이평선 돌파 후 특정 시점에 매도 전략(100일은 4% 수익, 200은 문제)
+
+이평선 아래 - std = 매수 signal
+이평선 위 + std = 매도 signal
 """
 input = pd.read_csv("C://data_minsung/finance/trade/JPY_KRW_2022.csv").iloc[::-1]
 input.columns = ['date', 'close', 'open', 'high', 'low', 'volume', 'volatil']
 input["date"] = pd.to_datetime(input["date"])
 input.set_index(["date"], inplace=True)
-input["range"] = input["high"] - input["low"]
 
 # volatil은 %단위
 input["volatil"] = [float(x[:-1]) for x in input["volatil"].values]
 
 # 반만(왜 반만 했지?)
 input = input.iloc[100:]
+
+
 
 # volatil = pd.DataFrame(input["volatil"].values.reshape(-1,1), index=input.index)
 
@@ -51,7 +53,6 @@ total["open"] = open_df[w:]
 total["volatil"] = input["volatil"][w:]
 
 
-mv5
 # 접점 찾기 로직(두 곡선 간의 교점)
 x = np.arange(0, len(total))
 
