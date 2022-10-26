@@ -92,6 +92,7 @@ for i in range(30, len(open_val)):
     max_idx, min_idx, mdd = get_mdd(temp)
     pric_standard = np.mean(temp)
     diff_standard = abs(mdd) / split
+    # diff_standard = abs(mdd) / split * open_val[i-1]
 
     # 최초매수 : 계좌에 외화가 없을 때
     if open_val[i] < pric_standard and len(account) == 0 and open_val[i] < 9.9:
@@ -125,7 +126,7 @@ print(np.sum(result), trade)
 plt.plot(open_plot, color='black')
 plt.scatter(a.index, a.values, color='red')
 plt.scatter(b.index, b.values, color='blue')
-
+plt.show()
 # 계좌잔액 손익률
 recent = open_val[-1]
 account_rev = sum([(recent/x-1) for x in account])/ split
