@@ -20,7 +20,7 @@ def get_mdd(x):
     peak_upper = np.argmax(arr_v[:peak_lower])
     return peak_upper, peak_lower, (arr_v[peak_lower] - arr_v[peak_upper]) / arr_v[peak_upper]
 
-input = pd.read_csv("C://data_minsung/finance/trade/tlsa_trade.csv").iloc[::-1]
+input = pd.read_csv("C://data_minsung/finance/trade/obe_trade.csv").iloc[::-1]
 input["Date"] = pd.to_datetime(input["Date"])
 
 input.set_index(["Date"], inplace=True)
@@ -31,7 +31,7 @@ input["Open"] = [float(x[1:]) for x in input["Open"]]
 
 
 # 1년 정도로만 제한해서 해보기
-input = input.iloc[-100:]
+input = input.iloc[-300:]
 
 # plot open data
 open_plot = pd.DataFrame(input["Open"].values.reshape(-1,1), index=input.index)
@@ -65,7 +65,7 @@ for i in range(30, len(open_val)):
     max_idx, min_idx, mdd = get_mdd(temp)
     mdd_li.append(mdd)
     pric_standard = np.mean(temp)
-    diff_standard = abs(mdd) / split * open_val[i]
+    diff_standard = abs(mdd) / split * open_val[i-1]
     # diff_standard = abs(mdd) / split
 
     # 최초매수 : 계좌에 외화가 없을 때
