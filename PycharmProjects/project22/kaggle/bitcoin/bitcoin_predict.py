@@ -74,8 +74,10 @@ sm.tsa.seasonal_decompose(df_month['prices_box_diff2'][13:]).plot()
 # Initial approximation of parameters using Autocorrelation and Partial Autocorrelation Plots
 plt.figure(figsize=(15,7))
 ax = plt.subplot(211)
+# acf = auto-correlation function
 sm.graphics.tsa.plot_acf(df_month.prices_box_diff2[13:].values.squeeze(), lags=48, ax=ax)
 ax = plt.subplot(212)
+# pacf = partial auto-correlation function
 sm.graphics.tsa.plot_pacf(df_month.prices_box_diff2[13:].values.squeeze(), lags=48, ax=ax)
 plt.tight_layout()
 plt.show()
@@ -109,3 +111,9 @@ for param in parameters_list:
         best_aic = aic
         best_param = param
     results.append([param, model.aic])
+
+# Best Models
+result_table = pd.DataFrame(results)
+result_table.columns = ['parameters', 'aic']
+print(result_table.sort_values(by = 'aic', ascending=True).head())
+print(best_model.summary())
