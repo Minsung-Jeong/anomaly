@@ -51,6 +51,7 @@ def m_port(top5, profit, price):
                 month_profit += -0.99
             else:
                 month_profit += profit.iloc[i+1][asset]
+        # 이 부분이 다름
         total_profit.append((month_profit/5 + 1)*total_profit[-1])
     return total_profit
 
