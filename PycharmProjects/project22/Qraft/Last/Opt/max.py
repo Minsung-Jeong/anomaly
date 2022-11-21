@@ -27,14 +27,21 @@ etfs.isna().sum()
 #
 etfs_ret = etfs.pct_change().dropna()
 
-monthly = etfs_ret.resample('M').last()
+monthly = etfs.resample('M').last()
 
 year_idx = [monthly.index[12*i] for i in range(len(monthly)//12+1)]
-yearly = pd.DataFrame(np.zeros((len(monthly)//12+1 , len(monthly.columns))), index=year_idx, columns=monthly.columns)
+annual = pd.DataFrame(np.zeros((len(monthly)//12+1 , len(monthly.columns))), index=year_idx, columns=monthly.columns)
 
 for i in range(len(monthly)//12):
-    yearly.iloc[i] = monthly.iloc[(i-1)*12:i*12].mean()
-yearly.dropna(inplace=True)
+    annual.iloc[i] = monthly.iloc[(i-1)*12:i*12].mean()
+
+
+stocks = etfs_ret.columns.values
+
+annual_ret = annual.pct_change().dropna()
+
+etfs_cov = etfs_ret.cov()
+annual_cov = annual_ret.cov()
 
 # yearly : 94/2/28~21/2/28 , observation 28개
 # montly : 93/2/28~21/5/31, observation 340개
@@ -46,10 +53,56 @@ sharpe_ratio = []
 
 stock = etfs_ret.columns.values
 
-for _ in range(100):
+# 원래 코드 구조가 1년에 대해서만 구하는 방식, 내껀 27년 해야하므로 for문 추가
+i = 0
+# for i in range(len(annual_ret)):
+    for _ in range(100):
+        # 임의의 포트 비중 생성
+        weights = np.random.random(len(stock))
+        weights /= np.sum(weights)
 
-    # 임의의 포트 비중 생성
-    weights = np.random.random(len(stock))
-    weights /= np.sum(weights)
+        returns  = np.dot(weights, annual_ret.iloc[i]) #비중과 수익률 곱해 포트폴리오 수익률 계산
+        risk = np.sqrt(np.dot(weights.T, np.dot(annual_cov, weights)))
+        SR = returns/risk #Sharpe Ratio
 
-    returns  = np.dot(weights, a)
+        port_ret.append(returns)
+        port_risk.append(risk)
+        port_weights.append(weights)
+        sharpe_ratio.append(SR)
+
+portfolio = {'Returns': port_ret, 'Risk': port_risk, 'Sharpe': sharpe_ratio}  # portfolio 딕셔너리에 각 종목별로 비중값 추가
+
+for i, s in enumerate(stocks):
+    portfolio[s] = [weight[i] for weight in port_weights]  # 개별주식의 weight값 append
+
+portfolio[s]
+
+df = pd.DataFrame(portfolio)
+df = df[['Returns', 'Risk', 'Sharpe'] + [s for s in stocks]]
+df
+
+# Mean-Varinance portfolio(평균분산포트폴리오) : 최대 샤프지수 ~ 탄젠트
+# 첫번째 년도의 max sharpe는 0.643203이 나옴
+max_sharpe = df.loc[df['Sharpe'] ==df['Sharpe'].max()]
+max_sharpe
+
+# Mininum-Variance portfolio(최소분산포트폴리오) : 최소 Variance(=Risk)
+min_risk = df.loc[df['Risk'] == df['Risk'].min()]
+min_risk
+
+
+# minimum-variance portfolio와 mean-variance portfolio 시각화
+df.plot.scatter(x='Risk', y='Returns', c='Sharpe', cmap='viridis',
+    edgecolors='k', figsize=(11,7), grid=True)
+
+plt.scatter(x=max_sharpe['Risk'], y=max_sharpe['Returns'], c='r',      # 평균분산포트폴리오 *표시
+    marker='*', s=300)
+
+plt.scatter(x=min_risk['Risk'], y=min_risk['Returns'], c='r',          # 최소분산포트폴리오 X표시
+    marker='X', s=200)
+
+plt.title('Portfolio Optimization')
+plt.xlabel('Risk')
+plt.ylabel('Expected Returns')
+plt.show()
+
