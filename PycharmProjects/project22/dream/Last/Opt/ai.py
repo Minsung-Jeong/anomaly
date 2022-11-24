@@ -27,37 +27,97 @@ os.chdir('C://data_minsung/finance/Qraft')
 -input : etfs, macros / output : 횡적리스크 모델 결과물
 """
 lable = pd.read_csv('./result/sharpeMax_port.csv').set_index('Date')
-lable.index = pd.to_datetime(lable.index)
 etfs = pd.read_csv('./indexPortfolio/etfs.csv').set_index('Date')
-etfs.index = pd.to_datetime(etfs.index)
 macros = pd.read_csv('./indexPortfolio/macros.csv').set_index('Unnamed: 0')
+lable.index = pd.to_datetime(lable.index)
+etfs.index = pd.to_datetime(etfs.index)
 macros.index = pd.to_datetime(macros.index)
-# macros 길이에 맞춰서 데이터 합치기
-etfs = etfs.iloc[len(etfs)-len(macros):]
 
-# lable : 94/2/28~21/4/30
-# input : 90/1/1~21/5/13 -> 94/2/25~21/4/29,(2/27 X -> 2/25)
-input = macros.copy()
-input[etfs.columns.values] = etfs.copy()
+def RNNmodel(x_trn ,x_tst, y_trn, y_tst, seq_len, n_feature):
+    checkpoint_path = 'training_1/cp-{epoch:04d}.ckpt'
+    os.chdir('C://data_minsung/result/AIport')
+    checkpoint_dir = os.path.dirname(checkpoint_path)
 
-start = 0
-end = 0
-for i in range(len(input)):
-    if input.index[i] == lable.index[0]:
-        start = i
-    if input.index[i] == lable.index[-1]:
-        end = i
+    cp_callback = tf.keras.callbacks.ModelCheckpoint(filepath=checkpoint_path,
+                                                 save_weights_only=True,
+                                                 verbose=1,
+                                                 period=5)
 
-input = input.iloc[start-1:end].copy()
+    x_train = tf.convert_to_tensor(x_trn)
+    x_test = tf.convert_to_tensor(x_tst)
+    y_train = tf.convert_to_tensor(y_trn)
+    y_test = tf.convert_to_tensor(y_tst)
+    out_shape = tf.shape(y_test)[1]
 
-# input 결측치 'MXUSMMT Index'에서 67개
-input.isna().sum()
-lable
-input.iloc[0]
-# 보간법 1. IterativeImputer / 2.KNNImputer
-imp = IterativeImputer(max_iter=10, random_state=0)
-imp.fit(input)
-X = pd.DataFrame(imp.transform(input), index=input.index, columns=input.columns)
+    model = models.Sequential()
+    model.add(layers.Input(shape=(seq_len, n_feature), name='input'))
+    model.add(layers.LSTM(256, activation='relu', return_sequences=True, name='first'))
+    model.add(layers.LSTM(128, activation='relu', name='second'))
+    # model.add(layers.LSTM(64, activation='relu', name='third'))
+    # classify면 2개, regress면 1개로 설정하도록
+    model.add(layers.Dense(out_shape))
+    model.summary()
+    model.compile(optimizer='adam',
+                  loss = 'mse',
+                  metrics=['accuracy'])
+    history = model.fit(x_train, y_train, epochs=100,
+                        # validation_data=(x_val, y_val)
+                        callbacks=[cp_callback]
+                        )
+    pred = model.predict(tf.convert_to_tensor(x_test))
+    return pred, mean_absolute_error(y_test, pred)
 
-Kimp = KNNImputer(n_neighbors=10)
-X2 = pd.DataFrame(Kimp.fit_transform(input), index=input.index, columns=input.columns)
+
+def data_process(etfs, macros):
+    # macros 길이에 맞춰서 데이터 합치기
+    etfs = etfs.iloc[len(etfs) - len(macros):]
+    input = macros.copy()
+    input[etfs.columns.values] = etfs.copy()
+
+    # 월말 데이터 결측치 이전 날 기준으로 보간 후 x-y 짝짓기
+    # ex) 94/4/30의 부재는 94/4/29를 이용하여 보간
+    input_month = input.resample('M').last()
+    temp = input.append(input_month)
+    temp = temp.sort_values(by='Unnamed: 0')
+    temp = temp[~temp.index.duplicated(keep='first')]
+
+    # 데이터 보간(KNN Imputation)
+    Kimp = KNNImputer(n_neighbors=10)
+    temp = pd.DataFrame(Kimp.fit_transform(temp), index=temp.index, columns=temp.columns)
+
+    return temp
+
+def data_for_rnn(input, lable, window_size):
+    index_sync = []
+    for i in range(len(lable)):
+        for j in range(len(input)):
+            if input.index[j] == lable.index[i]:
+                index_sync.append(j)
+
+    # lable 데이터 기준으로 이전 30일의 데이터를 input 데이터로 지정
+    input_li = [input.iloc[i-window_size : i].values for i in index_sync]
+    index_li = [input.index[i] for i in index_sync]
+
+    return input_li, index_li
+
+def normalize(data):
+    mean = data.mean()
+    std = data.std()
+    return (data-mean)/std
+
+input = data_process(etfs, macros)
+
+trn_size = int(len(lable)*0.7)
+trn_lable = lable.iloc[:trn_size]
+tst_lable = lable.iloc[trn_size:]
+
+len(trn_lable)
+len(tst_lable)
+
+trn_input = normalize(input[:trn_lable.index[-1]])
+tst_input = normalize(input[trn_lable.index[-1]:tst_lable.index[-1]])
+
+input_trn, idx_trn = data_for_rnn(trn_input, trn_lable, 20)
+input_tst, idx_tst = data_for_rnn(tst_input, tst_lable, 20)
+
+pred, mae = RNNmodel(input_trn, input_tst, trn_lable, tst_lable, seq_len=20, n_feature=30 )
