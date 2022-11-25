@@ -10,8 +10,8 @@ from scipy import stats, interpolate
 from sklearn.experimental import enable_iterative_imputer
 from sklearn.impute import IterativeImputer, KNNImputer
 import statsmodels.api as sm
-# import matplotlib.pyplot as plt
-# import seaborn as sns
+import matplotlib.pyplot as plt
+import seaborn as sns
 from datetime import datetime, timedelta
 import tensorflow as tf
 from tensorflow.keras import datasets, layers, models
@@ -32,6 +32,77 @@ macros = pd.read_csv('./indexPortfolio/macros.csv').set_index('Unnamed: 0')
 lable.index = pd.to_datetime(lable.index)
 etfs.index = pd.to_datetime(etfs.index)
 macros.index = pd.to_datetime(macros.index)
+
+# visualize data
+etfs.plot()
+macros.plot(figsize=(15,10))
+
+# 아웃라이어 제거
+def remove_out(data, remove_col):
+    inp = data
+    for k in remove_col:
+        col_data  = inp[k]
+        Q1 = inp[k].quantile(0.25)
+        Q3 = inp[k].quantile(0.75)
+        IQR = Q3 - Q1
+        IQR = IQR*2
+        low = Q1 - IQR
+        high = Q3 + IQR
+        outlier_idx = col_data[((col_data < low) | (col_data > high))].index
+        inp.drop(outlier_idx, axis=0, inplace=True)
+    return inp
+
+def normalize(data):
+    mean = data.mean()
+    std = data.std()
+    return (data-mean)/std
+
+def data_process(etfs, macros):
+    # macros 길이에 맞춰서 데이터 합치기
+    etfs = etfs.iloc[len(etfs) - len(macros):]
+    input = macros.copy()
+    input[etfs.columns.values] = etfs.copy()
+
+    # 보간1 : null값 보간(KNN Imputation)
+    Kimp = KNNImputer(n_neighbors=10)
+    input = pd.DataFrame(Kimp.fit_transform(input), index=input.index, columns=input.columns)
+
+    # 데이터 정규화
+    input = normalize(input)
+
+    # 영향력 클 것으로 예상되는 'VIX Index', 'MOVE Index'
+    sns.heatmap(input.corr())
+
+    # 위 2개 변수에 대해서 outlier 제거
+    remove_col = ['VIX Index', 'MOVE Index']
+    # Outlier 제거
+    result = remove_out(input, remove_col)
+
+    # 보간2 : 월말 데이터 결측치 이전 날 기준으로 보간
+    # ex) 94/4/30의 부재는 94/4/29를 이용하여 보간
+    # input_month = input.resample('M').last()
+    # temp = input.append(input_month)
+    # temp = temp.sort_values(by='Unnamed: 0')
+    # temp = temp[~temp.index.duplicated(keep='first')]
+
+    result_month = result.resample('M').last()
+    result = result.append(result_month)
+    result = result.sort_values(by='Unnamed: 0')
+    result = result[~result.index.duplicated(keep='first')]
+    return result
+
+def data_for_rnn(input, lable, window_size):
+    index_sync = []
+    for i in range(len(lable)):
+        for j in range(len(input)):
+            if input.index[j] == lable.index[i]:
+                index_sync.append(j)
+
+    # lable 데이터 기준으로 이전 30일의 데이터를 input 데이터로 지정
+    input_li = [input.iloc[i-window_size : i].values for i in index_sync]
+    index_li = [input.index[i] for i in index_sync]
+
+    return input_li, index_li
 
 def RNNmodel(x_trn ,x_tst, y_trn, y_tst, seq_len, n_feature):
     checkpoint_path = 'training_1/cp-{epoch:04d}.ckpt'
@@ -68,56 +139,16 @@ def RNNmodel(x_trn ,x_tst, y_trn, y_tst, seq_len, n_feature):
     return pred, mean_absolute_error(y_test, pred)
 
 
-def data_process(etfs, macros):
-    # macros 길이에 맞춰서 데이터 합치기
-    etfs = etfs.iloc[len(etfs) - len(macros):]
-    input = macros.copy()
-    input[etfs.columns.values] = etfs.copy()
-
-    # 월말 데이터 결측치 이전 날 기준으로 보간 후 x-y 짝짓기
-    # ex) 94/4/30의 부재는 94/4/29를 이용하여 보간
-    input_month = input.resample('M').last()
-    temp = input.append(input_month)
-    temp = temp.sort_values(by='Unnamed: 0')
-    temp = temp[~temp.index.duplicated(keep='first')]
-
-    # 데이터 보간(KNN Imputation)
-    Kimp = KNNImputer(n_neighbors=10)
-    temp = pd.DataFrame(Kimp.fit_transform(temp), index=temp.index, columns=temp.columns)
-
-    return temp
-
-def data_for_rnn(input, lable, window_size):
-    index_sync = []
-    for i in range(len(lable)):
-        for j in range(len(input)):
-            if input.index[j] == lable.index[i]:
-                index_sync.append(j)
-
-    # lable 데이터 기준으로 이전 30일의 데이터를 input 데이터로 지정
-    input_li = [input.iloc[i-window_size : i].values for i in index_sync]
-    index_li = [input.index[i] for i in index_sync]
-
-    return input_li, index_li
-
-def normalize(data):
-    mean = data.mean()
-    std = data.std()
-    return (data-mean)/std
-
 input = data_process(etfs, macros)
 
 trn_size = int(len(lable)*0.7)
 trn_lable = lable.iloc[:trn_size]
 tst_lable = lable.iloc[trn_size:]
 
-len(trn_lable)
-len(tst_lable)
+data_rnn, idx_rnn = data_for_rnn(input, lable, 20)
 
-trn_input = normalize(input[:trn_lable.index[-1]])
-tst_input = normalize(input[trn_lable.index[-1]:tst_lable.index[-1]])
+# input_trn, idx_trn = data_for_rnn(trn_input, trn_lable, 20)
+# input_tst, idx_tst = data_for_rnn(tst_input, tst_lable, 20)
 
-input_trn, idx_trn = data_for_rnn(trn_input, trn_lable, 20)
-input_tst, idx_tst = data_for_rnn(tst_input, tst_lable, 20)
+# pred, mae = RNNmodel(input_trn, input_tst, trn_lable, tst_lable, seq_len=20, n_feature=30 )
 
-pred, mae = RNNmodel(input_trn, input_tst, trn_lable, tst_lable, seq_len=20, n_feature=30 )
