@@ -8,7 +8,7 @@ import numpy as np
 import os
 from scipy import stats, interpolate
 from sklearn.experimental import enable_iterative_imputer
-from sklearn.impute import IterativeImputer, KNNImputer
+from sklearn.impute import KNNImputer
 import statsmodels.api as sm
 import matplotlib.pyplot as plt
 import seaborn as sns
@@ -16,53 +16,38 @@ from datetime import datetime, timedelta
 import tensorflow as tf
 from tensorflow.keras import datasets, layers, models
 from sklearn.metrics import mean_absolute_error
-# from statsmodels.stats.outliers_influence import variance_inflation_factor
-os.chdir('C://data_minsung/finance/Qraft')
+from statsmodels.stats.outliers_influence import variance_inflation_factor
+from sklearn.model_selection import TimeSeriesSplit
+from sklearn.model_selection import cross_val_score
 
-"""
-1. Data EDA
--시계열 특성에 대한 체크
--보간법, 이상치 제거, 수치변환, 다중 공선성 제거, feature engineering 등 수행
--보간법에 따른 성능차이? -이전값 constant, 
--input : etfs, macros / output : 횡적리스크 모델 결과물
-"""
-lable = pd.read_csv('./result/sharpeMax_port.csv').set_index('Date')
-etfs = pd.read_csv('./indexPortfolio/etfs.csv').set_index('Date')
-macros = pd.read_csv('./indexPortfolio/macros.csv').set_index('Unnamed: 0')
-lable.index = pd.to_datetime(lable.index)
-etfs.index = pd.to_datetime(etfs.index)
-macros.index = pd.to_datetime(macros.index)
-
-# visualize data
-etfs.plot()
-macros.plot(figsize=(15,10))
 
 # 아웃라이어 제거
 def remove_out(data, remove_col):
-    inp = data
+    inp = data.copy()
+    idx = []
     for k in remove_col:
         col_data  = inp[k]
         Q1 = inp[k].quantile(0.25)
         Q3 = inp[k].quantile(0.75)
         IQR = Q3 - Q1
-        IQR = IQR*2
+        IQR = IQR*2 #2배수에 대한 논리 필요
         low = Q1 - IQR
         high = Q3 + IQR
         outlier_idx = col_data[((col_data < low) | (col_data > high))].index
         inp.drop(outlier_idx, axis=0, inplace=True)
-    return inp
+        idx.extend(outlier_idx)
+    return inp, idx
 
 def normalize(data):
     mean = data.mean()
     std = data.std()
     return (data-mean)/std
 
-def data_process(etfs, macros):
+def data_process(etfs, macros, lable):
     # macros 길이에 맞춰서 데이터 합치기
     etfs = etfs.iloc[len(etfs) - len(macros):]
     input = macros.copy()
     input[etfs.columns.values] = etfs.copy()
-
     # 보간1 : null값 보간(KNN Imputation)
     Kimp = KNNImputer(n_neighbors=10)
     input = pd.DataFrame(Kimp.fit_transform(input), index=input.index, columns=input.columns)
@@ -72,24 +57,24 @@ def data_process(etfs, macros):
 
     # 영향력 클 것으로 예상되는 'VIX Index', 'MOVE Index'
     sns.heatmap(input.corr())
-
     # 위 2개 변수에 대해서 outlier 제거
     remove_col = ['VIX Index', 'MOVE Index']
     # Outlier 제거
-    result = remove_out(input, remove_col)
+    result, out_idx = remove_out(input, remove_col)
 
     # 보간2 : 월말 데이터 결측치 이전 날 기준으로 보간
     # ex) 94/4/30의 부재는 94/4/29를 이용하여 보간
-    # input_month = input.resample('M').last()
-    # temp = input.append(input_month)
-    # temp = temp.sort_values(by='Unnamed: 0')
-    # temp = temp[~temp.index.duplicated(keep='first')]
-
     result_month = result.resample('M').last()
     result = result.append(result_month)
     result = result.sort_values(by='Unnamed: 0')
     result = result[~result.index.duplicated(keep='first')]
-    return result
+
+    # outlier 제거로 인해 유실된 데이터에 맞춤
+    null_idx = result_month[result_month.iloc[:, 0].isna()].index.values
+    lable.drop(null_idx, axis=0, inplace=True)
+    result.drop(null_idx, axis=0, inplace=True)
+
+    return result, lable
 
 def data_for_rnn(input, lable, window_size):
     index_sync = []
@@ -122,10 +107,9 @@ def RNNmodel(x_trn ,x_tst, y_trn, y_tst, seq_len, n_feature):
 
     model = models.Sequential()
     model.add(layers.Input(shape=(seq_len, n_feature), name='input'))
-    model.add(layers.LSTM(256, activation='relu', return_sequences=True, name='first'))
-    model.add(layers.LSTM(128, activation='relu', name='second'))
+    model.add(layers.LSTM(128, activation='relu', return_sequences=True, name='first'))
+    model.add(layers.LSTM(64, activation='relu', name='second'))
     # model.add(layers.LSTM(64, activation='relu', name='third'))
-    # classify면 2개, regress면 1개로 설정하도록
     model.add(layers.Dense(out_shape))
     model.summary()
     model.compile(optimizer='adam',
@@ -139,16 +123,76 @@ def RNNmodel(x_trn ,x_tst, y_trn, y_tst, seq_len, n_feature):
     return pred, mean_absolute_error(y_test, pred)
 
 
-input = data_process(etfs, macros)
+"""
+1. Data EDA
+-시계열 특성에 대한 체크
+-보간법, 이상치 제거, 수치변환, 다중 공선성 제거, feature engineering 등 수행
+-보간법에 따른 성능차이? -이전값 constant, 
+-input : etfs, macros / output : 횡적리스크 모델 결과물
+"""
+os.chdir('C://data_minsung/finance/Qraft')
+lable = pd.read_csv('./result/sharpeMax_port.csv').set_index('Date')
+etfs = pd.read_csv('./indexPortfolio/etfs.csv').set_index('Date')
+macros = pd.read_csv('./indexPortfolio/macros.csv').set_index('Unnamed: 0')
+lable.index = pd.to_datetime(lable.index)
+etfs.index = pd.to_datetime(etfs.index)
+macros.index = pd.to_datetime(macros.index)
+
+# visualize data
+# etfs.plot()
+# macros.plot(figsize=(15,10))
+
+# etfs 시계열 데이터 특성 확인
+check_etfs = etfs.dropna()
+f, axes = plt.subplots(3,3)
+f.set_size_inches((10,10))
+cols = etfs.columns
+# 모든 값에 trend는 있지만 seasonality는 없음
+
+# adf - h0 : 비정상시계열, kpss-h0 : 정상시계열
+# adf의 p-val 가장 작은 값이 0.43 모든 변수가 비정상시계열(trend가 너무 강함)
+# 딥러닝을 적용할 것이기 때문에 차분 등의 과정 불필요하다고 판단
+for col in cols:
+    # sm.tsa.seasonal_decompose(check_etfs[col]).plot()
+    print("Augmented Dickey–Fuller test: p=%f" % sm.tsa.stattools.adfuller(check_etfs[col])[1])
+
+# 자잘한 데이터 전처리
+input, lable_ = data_process(etfs, macros, lable)
+
+# ----------------다중공선성 제거
+vif = pd.DataFrame()
+vif['VIF_Factor'] = [variance_inflation_factor(input.values, i) for i in range(input.shape[1])]
+vif['feature'] = input.columns
+vif.sort_values(by='VIF_Factor', ascending=True)
+# SPX Index에서 압도적으로 높은 다중공선성을 보이므로 해당값 삭제
+input.drop('SPX Index', axis=1, inplace=True)
+# --------------------------------------------------
+
 
 trn_size = int(len(lable)*0.7)
-trn_lable = lable.iloc[:trn_size]
-tst_lable = lable.iloc[trn_size:]
+y_trn = lable.iloc[:trn_size]
+y_tst = lable.iloc[trn_size:]
 
-data_rnn, idx_rnn = data_for_rnn(input, lable, 20)
+# data_rnn, idx_rnn = data_for_rnn(input, lable, 20)
 
-# input_trn, idx_trn = data_for_rnn(trn_input, trn_lable, 20)
-# input_tst, idx_tst = data_for_rnn(tst_input, tst_lable, 20)
+trn_input = input[:y_trn.index[-1]]
+tst_input = input[y_trn.index[-1]:y_tst.index[-1]]
 
-# pred, mae = RNNmodel(input_trn, input_tst, trn_lable, tst_lable, seq_len=20, n_feature=30 )
+# sharpe maximize 로 바꾸는 게 말이 안되는 이유 - performance 평가할 부분이 없다
+X_trn, idx_trn = data_for_rnn(trn_input, y_trn, 20)
+X_tst, idx_tst = data_for_rnn(tst_input, y_tst, 20)
 
+x_trn = X_trn
+x_tst = X_tst
+
+# 나눠지는 형태 train/test = train/validation
+# validation 보다도 rnn 모델 구조 다시 파악하는 것이 선행
+tcsv = TimeSeriesSplit(n_splits=len(X_trn))
+# 64/32=> mae: 0.09 , 128/64 => 0.05<mae<0.18 왔다갔다 하는 모습
+
+seq_len = 20
+n_feature = np.shape(x_trn)[-1]
+pred, mae = RNNmodel(X_trn, X_tst, y_trn, y_tst, seq_len=20, n_feature=np.shape(x_trn)[-1])
+
+np.shape(X_trn)
+np.shape(X_tst), np.shape(pred)

@@ -26,6 +26,20 @@ weight 구성 로직 : 많은 자산에 골고루 배분할 수 있는 방식
 4. 0.25 넘는 값은 0.25로 변경 뒤 차잇값(diff)만큼 뒤의 값에 나눠서 더해줌
 5. 4번에 대한 값 = diff / (len(val) - (i+1)) 
 """
+
+def get_data(url):
+
+    etfs = pd.read_csv(url).set_index('Date')
+    etfs.index = pd.to_datetime(etfs.index)
+
+    # EMB 결측치가 3413으로 가장 많다
+    etfs.isna().sum()
+    etfs = etfs.dropna()
+
+    ret_month = etfs.resample('M').last().pct_change()[1:]
+    end_d = ret_month.index
+    return ret_month, end_d
+
 def re_weight(weight):
     # 내림차순 정렬 -> 최솟값의 절댓값 모든 값에 더하기(음수 제거) ->
     temp = weight.sort_values(by=0, ascending=False)
@@ -46,18 +60,7 @@ def re_weight(weight):
             new_temp.append(temp_val[i][0])
     return pd.Series(new_temp, index=temp_idx)
 
-def get_data(url):
 
-    etfs = pd.read_csv(url).set_index('Date')
-    etfs.index = pd.to_datetime(etfs.index)
-
-    # EMB 결측치가 3413으로 가장 많다
-    etfs.isna().sum()
-    etfs = etfs.dropna()
-
-    ret_month = etfs.resample('M').last().pct_change()[1:]
-    end_d = ret_month.index
-    return ret_month, end_d
 """
 일별 데이터(80/1/1~21/5/13) -> 결측치 제거(93/1/29 ~ 21/5/13)
 월별 93/2/28~21/5/31
@@ -68,17 +71,18 @@ def execution(ret_month, end_d):
     # 94년 1월 31일 결정(1 month forward looking)-1월31일~2월28일 사이의 profit
     result = []
     weight_df = pd.DataFrame((np.zeros_like(ret_month)), columns=ret_month.columns)
+
     for i in range(12, len(end_d)-1): #데이터 5월 13일까지 있으므로 마지막 인덱스는 생략
         s_idx = end_d[i-12]
         e_idx = end_d[i]
         sharpe_inputs = ret_month[s_idx: e_idx]
-
         weight = get_tan_weight(sharpe_inputs)
-
         # 25넘는 부분 내리고 음수는 양수화하는 re-weight
         re_weighted = re_weight(weight)
 
-        weight_df.iloc[i] = re_weighted
+        for asset in weight_df.iloc[i].index:
+            weight_df.iloc[i][asset] = re_weighted[asset]
+
         # profit
         profit = ret_month.iloc[i]
 

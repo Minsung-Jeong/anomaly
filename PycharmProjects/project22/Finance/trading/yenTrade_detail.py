@@ -19,11 +19,10 @@ def get_mdd(x):
     peak_upper = np.argmax(arr_v[:peak_lower])
     return peak_upper, peak_lower, (arr_v[peak_lower] - arr_v[peak_upper]) / arr_v[peak_upper]
 
-input = pd.read_csv("C://data_minsung/finance/trade/JPY_KRW_2022.csv").iloc[::-1]
+input = pd.read_csv("C://data_minsung/finance/trade/JPY_KRW_20_22.csv").iloc[::-1]
 input.columns = ['date', 'close', 'open', 'high', 'low', 'volume', 'volatil']
 input["date"] = pd.to_datetime(input["date"])
 input.set_index(["date"], inplace=True)
-
 
 # plot open data
 open_plot = pd.DataFrame(input["open"].values.reshape(-1,1), index=input.index)
@@ -106,7 +105,27 @@ print(np.sum(result)/split+account_rev, trade)
 
 
 # table = pd.concat((a,b, account_with_date), axis=1)
+#
+#
 # table.to_csv("C://data_minsung/finance/trade/result/result2022_detail.csv")
 
 
+# 기준금리 비교
+input = pd.read_csv("C://data_minsung/finance/trade/JPY_KRW_20_22.csv").iloc[::-1]
+input.columns = ['date', 'close', 'open', 'high', 'low', 'volume', 'volatil']
+input["date"] = pd.to_datetime(input["date"])
+input.set_index(["date"], inplace=True)
+
+
+KO = pd.read_csv("C://data_minsung/finance/trade/KO10GovernBond.csv")
+JP = pd.read_csv("C://data_minsung/finance/trade/JP10GovernBond.csv")
+US = pd.read_csv("C://data_minsung/finance/trade/US10GovernBond.csv")
+
+KO.set_index('DATE', inplace=True)
+JP.set_index('DATE', inplace=True)
+US.set_index('DATE', inplace=True)
+
+KO.index = pd.to_datetime(KO.index)
+JP.index = pd.to_datetime(JP.index)
+US.index = pd.to_datetime(US.index)
 

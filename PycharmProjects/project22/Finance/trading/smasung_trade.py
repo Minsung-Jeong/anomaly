@@ -100,3 +100,5 @@ recent = open_val[-1]
 account_rev = sum([(recent/x-1) for x in account])/ split
 
 print(np.sum(result)/split, trade)
+
+

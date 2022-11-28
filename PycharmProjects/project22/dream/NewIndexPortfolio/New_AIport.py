@@ -107,3 +107,5 @@ x_tst, y_tst, x_tst_idx, y_tst_idx = generate_window(tst_data, seq_len)
 # 집 컴퓨터 numpy tensor 싱크 문제 있는 듯
 pred, mae = RNNmodel(x_trn, x_tst, y_trn, y_tst, seq_len, n_feature )
 
+
+
