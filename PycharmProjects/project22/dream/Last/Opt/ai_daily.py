@@ -78,7 +78,12 @@ def data_process(etfs, macros):
     lable = result[cols]
     return result, lable
 
-
+def data_for_rnn(input, seq_len):
+    x_li = []
+    x_idx = input.index[seq_len-1:-1]
+    for i in range(len(input)-seq_len):
+        x_li.append(input.iloc[i:i+seq_len].values)
+    return x_li, x_idx
 
 def RNNmodel(x_trn ,x_tst, y_trn, y_tst, seq_len, n_feature):
     checkpoint_path = 'training_1/cp-{epoch:04d}.ckpt'
@@ -106,12 +111,13 @@ def RNNmodel(x_trn ,x_tst, y_trn, y_tst, seq_len, n_feature):
     model.compile(optimizer='adam',
                   loss = 'mse',
                   metrics=['accuracy'])
-    history = model.fit(x_train, y_train, epochs=100,
-                        # validation_data=(x_val, y_val)
-                        callbacks=[cp_callback]
-                        )
-    pred = model.predict(tf.convert_to_tensor(x_test))
-    return pred, mean_absolute_error(y_test, pred)
+    return model
+    # history = model.fit(x_train, y_train, epochs=100,
+    #                     # validation_data=(x_val, y_val)
+    #                     callbacks=[cp_callback]
+    #                     )
+    # pred = model.predict(tf.convert_to_tensor(x_test))
+    # return pred, mean_absolute_error(y_test, pred)
 
 
 """
@@ -147,7 +153,7 @@ for col in cols:
     # sm.tsa.seasonal_decompose(check_etfs[col]).plot()
     print("Augmented Dickey–Fuller test: p=%f" % sm.tsa.stattools.adfuller(check_etfs[col])[1])
 
-# 자잘한 데이터 전처리
+# 데이터 전처리
 input, lable = data_process(etfs, macros)
 
 # ----------------다중공선성 제거
@@ -161,49 +167,93 @@ input.drop('SPX Index', axis=1, inplace=True)
 
 seq_len = 20
 # 원래 data len = 8106
-input = input.iloc[:-seq_len]
-lable = lable.iloc[seq_len:]
+y_rnn = lable.iloc[seq_len:]
+
+x_rnn, input_idx = data_for_rnn(input, seq_len)
 
 trn_size = int(len(input)*0.7)
-y_trn = lable.iloc[:trn_size]
-y_tst = lable.iloc[trn_size:]
+y_trn = y_rnn.iloc[:trn_size]
+y_tst = y_rnn.iloc[trn_size:]
 
-
-x_trn = input.iloc[:trn_size]
-x_tst = input.iloc[trn_size:]
+x_trn = x_rnn[:trn_size]
+x_tst = x_rnn[trn_size:]
 
 # -----------------------11/28
-
-# -----------------------11/29
-def data_for_rnn(input, lable, seq_len):
-    index_sync = []
-    for i in range(len(lable)):
-        for j in range(len(input)):
-            if input.index[j] == lable.index[i]:
-                index_sync.append(j)
-
-    # lable 데이터 기준으로 이전 30일의 데이터를 input 데이터로 지정
-    input_li = [input.iloc[i-seq_len : i].values for i in index_sync]
-    index_li = [input.index[i] for i in index_sync]
-
-    return input_li, index_li
-
-# sharpe maximize 로 바꾸는 게 말이 안되는 이유 - performance 평가할 부분이 없다
-X_trn, idx_trn = data_for_rnn(x_trn, y_trn, seq_len)
-X_tst, idx_tst = data_for_rnn(x_tst, y_tst, seq_len)
-
-
-x_trn = X_trn
-x_tst = X_tst
+# trn = 5660, tst = 2426
+# input : 1/1 시작, lable : 1/29 시작
 
 # 나눠지는 형태 train/test = train/validation
-# validation 보다도 rnn 모델 구조 다시 파악하는 것이 선행
-tcsv = TimeSeriesSplit(n_splits=len(X_trn))
-# 64/32=> mae: 0.09 , 128/64 => 0.05<mae<0.18 왔다갔다 하는 모습
 
 seq_len = 20
 n_feature = np.shape(x_trn)[-1]
-pred, mae = RNNmodel(X_trn, X_tst, y_trn, y_tst, seq_len=20, n_feature=np.shape(x_trn)[-1])
+model = RNNmodel(x_trn, x_tst, y_trn, y_tst, seq_len=20, n_feature=np.shape(x_trn)[-1])
+# -------------------------model 실행부
+x_test = tf.convert_to_tensor(x_tst)
+y_test = tf.convert_to_tensor(y_tst)
 
-np.shape(X_trn)
-np.shape(X_tst), np.shape(pred)
+for i in range(len(x_trn)-1):
+    x_trn_t = x_trn[:i+1]
+    y_trn_t = y_trn.iloc[:i+1]
+
+    # x_val = x_trn[i+1]
+    # y_val = y_trn.iloc[i+1]
+
+    x_val = np.expand_dims(x_trn[i+1], axis=0)
+    y_val = np.expand_dims(y_trn.iloc[i+1], axis=0)
+
+    #
+    # np.shape(x_trn_t), np.shape(x_val)
+    # np.shape(y_trn_t), np.shape(y_val)
+    #
+
+
+    x_train = tf.convert_to_tensor(x_trn_t)
+    y_train = tf.convert_to_tensor(y_trn_t)
+
+    x_val = tf.convert_to_tensor(x_val)
+    y_val = tf.convert_to_tensor(y_val)
+
+    model.fit(x_train, y_train, epochs=5,
+                        validation_data=(x_val, y_val)
+                        # callbacks=[cp_callback]
+                        )
+pred = model.predict(tf.convert_to_tensor(x_test))
+
+mean_absolute_error(y_tst, pred)
+# ----------------------------
+# pred_df = pd.DataFrame(pred, index=y_tst.index, columns=y_tst.columns)
+
+
+
+
+# time series split 실습(판다스를 가정하고 만들었기 때문에 이런 형태)
+from sklearn.model_selection import TimeSeriesSplit
+np.shape(x_trn) # 입력값
+X = np.array([[1, 2], [3, 4], [1, 2], [3, 4], [1, 2], [3, 4]])
+y = np.array([1, 2, 3, 4, 5, 6])
+
+tscv = TimeSeriesSplit()
+
+# for train_index, test_index in tscv.split(X):
+#     print("TRAIN:", train_index, "TEST:", test_index)
+#     X_train, X_test = X[train_index], X[test_index]
+#     y_train, y_test = y[train_index], y[test_index]
+#
+# X = x_trn
+# y = y_trn
+#
+# ts_cv = TimeSeriesSplit(n_splits = len(X)-1)
+# np.shape(X), np.shape(y)
+# list(ts_cv.split(X, y))[-1]
+
+# temp = []
+# for i in range(10):
+#     x_id = list(range(i+1))
+#     y_id = [i+1]
+#     print(x_id, y_id)
+
+temp = list(range(10))
+x = temp[:i+1]
+y = i+1
+print(x)
+print(y)
