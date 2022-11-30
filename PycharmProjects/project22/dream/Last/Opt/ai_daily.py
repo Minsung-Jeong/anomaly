@@ -182,7 +182,7 @@ x_tst = x_rnn[trn_size:]
 # trn = 5660, tst = 2426
 # input : 1/1 시작, lable : 1/29 시작
 
-# 나눠지는 형태 train/test = train/validation
+
 
 seq_len = 20
 n_feature = np.shape(x_trn)[-1]
@@ -195,17 +195,8 @@ for i in range(len(x_trn)-1):
     x_trn_t = x_trn[:i+1]
     y_trn_t = y_trn.iloc[:i+1]
 
-    # x_val = x_trn[i+1]
-    # y_val = y_trn.iloc[i+1]
-
     x_val = np.expand_dims(x_trn[i+1], axis=0)
     y_val = np.expand_dims(y_trn.iloc[i+1], axis=0)
-
-    #
-    # np.shape(x_trn_t), np.shape(x_val)
-    # np.shape(y_trn_t), np.shape(y_val)
-    #
-
 
     x_train = tf.convert_to_tensor(x_trn_t)
     y_train = tf.convert_to_tensor(y_trn_t)
@@ -220,40 +211,3 @@ for i in range(len(x_trn)-1):
 pred = model.predict(tf.convert_to_tensor(x_test))
 
 mean_absolute_error(y_tst, pred)
-# ----------------------------
-# pred_df = pd.DataFrame(pred, index=y_tst.index, columns=y_tst.columns)
-
-
-
-
-# time series split 실습(판다스를 가정하고 만들었기 때문에 이런 형태)
-from sklearn.model_selection import TimeSeriesSplit
-np.shape(x_trn) # 입력값
-X = np.array([[1, 2], [3, 4], [1, 2], [3, 4], [1, 2], [3, 4]])
-y = np.array([1, 2, 3, 4, 5, 6])
-
-tscv = TimeSeriesSplit()
-
-# for train_index, test_index in tscv.split(X):
-#     print("TRAIN:", train_index, "TEST:", test_index)
-#     X_train, X_test = X[train_index], X[test_index]
-#     y_train, y_test = y[train_index], y[test_index]
-#
-# X = x_trn
-# y = y_trn
-#
-# ts_cv = TimeSeriesSplit(n_splits = len(X)-1)
-# np.shape(X), np.shape(y)
-# list(ts_cv.split(X, y))[-1]
-
-# temp = []
-# for i in range(10):
-#     x_id = list(range(i+1))
-#     y_id = [i+1]
-#     print(x_id, y_id)
-
-temp = list(range(10))
-x = temp[:i+1]
-y = i+1
-print(x)
-print(y)
