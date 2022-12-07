@@ -85,7 +85,7 @@ def data_for_rnn(input, seq_len):
         x_li.append(input.iloc[i:i+seq_len].values)
     return x_li, x_idx
 
-def RNNmodel(x_trn ,x_tst, y_trn, y_tst, seq_len, n_feature):
+def RNNmodel(out_shape, seq_len, n_feature):
     checkpoint_path = 'training_1/cp-{epoch:04d}.ckpt'
     os.chdir('C://data_minsung/result/AIport')
     checkpoint_dir = os.path.dirname(checkpoint_path)
@@ -94,12 +94,7 @@ def RNNmodel(x_trn ,x_tst, y_trn, y_tst, seq_len, n_feature):
                                                  save_weights_only=True,
                                                  verbose=1,
                                                  period=5)
-
-    x_train = tf.convert_to_tensor(x_trn)
-    x_test = tf.convert_to_tensor(x_tst)
-    y_train = tf.convert_to_tensor(y_trn)
-    y_test = tf.convert_to_tensor(y_tst)
-    out_shape = tf.shape(y_test)[1]
+    out_shape = out_shape
 
     model = models.Sequential()
     model.add(layers.Input(shape=(seq_len, n_feature), name='input'))
@@ -119,6 +114,15 @@ def RNNmodel(x_trn ,x_tst, y_trn, y_tst, seq_len, n_feature):
     # pred = model.predict(tf.convert_to_tensor(x_test))
     # return pred, mean_absolute_error(y_test, pred)
 
+def del_multicolin(input):
+    # 다중공선성 제거
+    vif = pd.DataFrame()
+    vif['VIF_Factor'] = [variance_inflation_factor(input.values, i) for i in range(input.shape[1])]
+    vif['feature'] = input.columns
+    vif.sort_values(by='VIF_Factor', ascending=True)
+    # SPX Index에서 압도적으로 높은 다중공선성을 보이므로 해당값 삭제
+    input.drop('SPX Index', axis=1, inplace=True)
+    return input
 
 """
 1. Data EDA
@@ -134,10 +138,6 @@ macros = pd.read_csv('./indexPortfolio/macros.csv').set_index('Unnamed: 0')
 etfs.index = pd.to_datetime(etfs.index)
 macros.index = pd.to_datetime(macros.index)
 
-
-# visualize data
-# etfs.plot()
-# macros.plot(figsize=(15,10))
 
 # etfs 시계열 데이터 특성 확인
 check_etfs = etfs.dropna()
@@ -155,20 +155,11 @@ for col in cols:
 
 # 데이터 전처리
 input, lable = data_process(etfs, macros)
-
-# ----------------다중공선성 제거
-vif = pd.DataFrame()
-vif['VIF_Factor'] = [variance_inflation_factor(input.values, i) for i in range(input.shape[1])]
-vif['feature'] = input.columns
-vif.sort_values(by='VIF_Factor', ascending=True)
-# SPX Index에서 압도적으로 높은 다중공선성을 보이므로 해당값 삭제
-input.drop('SPX Index', axis=1, inplace=True)
-# --------------------------------------------------
+input = del_multicolin(input)
 
 seq_len = 20
 # 원래 data len = 8106
 y_rnn = lable.iloc[seq_len:]
-
 x_rnn, input_idx = data_for_rnn(input, seq_len)
 
 trn_size = int(len(input)*0.7)
@@ -178,15 +169,9 @@ y_tst = y_rnn.iloc[trn_size:]
 x_trn = x_rnn[:trn_size]
 x_tst = x_rnn[trn_size:]
 
-# -----------------------11/28
-# trn = 5660, tst = 2426
-# input : 1/1 시작, lable : 1/29 시작
-
-
-
-seq_len = 20
 n_feature = np.shape(x_trn)[-1]
-model = RNNmodel(x_trn, x_tst, y_trn, y_tst, seq_len=20, n_feature=np.shape(x_trn)[-1])
+
+model = RNNmodel(np.shape(y_tst)[1], seq_len=20, n_feature=np.shape(x_trn)[-1])
 # -------------------------model 실행부
 x_test = tf.convert_to_tensor(x_tst)
 y_test = tf.convert_to_tensor(y_tst)
