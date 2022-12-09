@@ -20,22 +20,28 @@ def get_mdd(x):
     peak_upper = np.argmax(arr_v[:peak_lower])
     return peak_upper, peak_lower, (arr_v[peak_lower] - arr_v[peak_upper]) / arr_v[peak_upper]
 
-input = pd.read_csv("C://data_minsung/finance/trade/obe_trade.csv").iloc[::-1]
+input = pd.read_csv("C://data_minsung/finance/trade/HistoricalData_obe.csv").iloc[::-1]
 input["Date"] = pd.to_datetime(input["Date"])
-
 input.set_index(["Date"], inplace=True)
-
-float(input["Open"].iloc[0][1:])
-
 input["Open"] = [float(x[1:]) for x in input["Open"]]
+
+xle = pd.read_csv("C://data_minsung/finance/trade/HistoricalData_XLE.csv").iloc[::-1]
+xle["Date"] = pd.to_datetime(xle["Date"])
+xle.set_index(["Date"], inplace=True)
+xle["Open"] = [float(x) for x in xle["Open"]]
 
 
 # 1년 정도로만 제한해서 해보기
-input = input.iloc[-300:]
+obe = input.iloc[-300:]
+xle = xle.iloc[-300:]
 
+len(xle)
+len(obe)
 # plot open data
-open_plot = pd.DataFrame(input["Open"].values.reshape(-1,1), index=input.index)
+open_plot = pd.DataFrame(obe["Open"].values.reshape(-1,1), index=obe.index)
 plt.plot(open_plot, color='black')
+
+
 
 """
 완성코드
@@ -43,8 +49,8 @@ plt.plot(open_plot, color='black')
 # 21년에 대해서도 가능한지 확인 -> 12%의 수익률
 # 기준 가격과 diff에 대해서 window 계속 움직일 수 있게 해야함
 """
-open_val = input["Open"].values
-open_idx = input.index
+open_val = obe["Open"].values
+open_idx = obe.index
 split = 5
 # 주식 - 슬리피지 고려 x
 comisison = 20*(1-1) / 100
@@ -57,11 +63,11 @@ buy_idx = []
 buy_pr = []
 sell_idx = []
 sell_pr = []
-account_with_date = pd.DataFrame(np.zeros((len(input), split)), index=input.index)
+account_with_date = pd.DataFrame(np.zeros((len(obe), split)), index=obe.index)
 mdd_li = []
 
 for i in range(30, len(open_val)):
-    temp = input["Open"].iloc[i-30:i]
+    temp = obe["Open"].iloc[i-30:i]
     max_idx, min_idx, mdd = get_mdd(temp)
     mdd_li.append(mdd)
     pric_standard = np.mean(temp)
