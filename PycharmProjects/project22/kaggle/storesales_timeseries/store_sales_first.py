@@ -82,6 +82,7 @@ os.chdir('C://data_minsung/kaggle/store_sales')
 # df_train_aft.to_csv("./train_processed.csv")
 
 # sales가 label
+
 df_train_aft = pd.read_csv("./train_processed.csv")
 df_train_aft['date'] = pd.to_datetime(df_train_aft['date'])
 df_train_aft.set_index('date', inplace=True)
@@ -94,7 +95,7 @@ df_train_aft.columns
 df_train_aft = df_train_aft.dropna()
 # sales와 가장 상관성 높은 변수 : 'onpromotion', 'transactions'이 예측에 가장 중요할 것으로 예상
 sns.heatmap(df_train_aft.corr(method='pearson'),annot=True)
-
+plt.shop()
 
 x = df_train_aft.drop('sales', axis=1)
 y = df_train_aft['sales']
@@ -131,8 +132,23 @@ x_norm = normalize(x)
 # import Random Forest classifier
 from sklearn.ensemble import RandomForestRegressor
 from sklearn.model_selection import train_test_split
+from sklearn.metrics import mean_absolute_error
+import time
 
-X_train, X_test, y_train, y_test = train_test_split(x, y, test_size = 0.3, random_state = 0)
+X_train, X_test, y_train, y_test = train_test_split(x, y, test_size = 0.3)
 rfc = RandomForestRegressor(random_state=0)
+# 시작시간
+start = time.time()
 rfc.fit(X_train, y_train)
+# 종료시간
+end = time.time()
+print(f"{end - start:.5f} sec")
 y_pred = rfc.predict(X_test)
+mean_absolute_error(y_test, y_pred)
+
+
+y_pred_plt = pd.DataFrame(y_pred, index=range(len(y_pred)))
+y_test_plt = pd.DataFrame(y_test.values, index=range(len(y_test)))
+plt.plot(y_pred_plt[:100], color='b')
+plt.plot(y_test_plt[:100],  color='r')
+plt.show()
