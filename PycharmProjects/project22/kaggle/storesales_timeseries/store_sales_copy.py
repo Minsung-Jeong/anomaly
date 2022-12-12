@@ -152,10 +152,14 @@ plt.show()
 """
 store_sales = df_train.copy()
 
+# date : 시간단위 -> 날짜단위 변경
 store_sales['date'] = store_sales.date.dt.to_period('D')
-store_sales.head()
+
+# columns : 'store_nbr', 'family', 'date' 를 인덱스에 추가(원래는 그냥 숫자 0~3000887)
+# 남는 columns : id, sales, onpromotion
 store_sales = store_sales.set_index(['store_nbr', 'family', 'date']).sort_index()
 store_sales.head()
+# index였던 family를 unstack
 family_sales = (
     store_sales
     .groupby(['family', 'date'])
@@ -164,7 +168,27 @@ family_sales = (
     .loc['2017']
 )
 
+##############################################################################################multi-index  연습
+
+# index = pd.MultiIndex.from_tuples([('one', 'a'), ('one', 'b'),
+#                                    ('two', 'a'), ('two', 'b')])
+# s = pd.Series(np.arange(1.0, 5.0), index=index)
+# s
+# s.unstack(level=-1)
+#
+# temp = store_sales.groupby(['family', 'date']).mean().unstack()
+# temp.index
+# store_sales[1]
+# store_sales.index
+# temp
+##############################################################################################
+
+
+
+
+
 # we'll add fit and predict methods to this minimal class
+
 class BoostedHybrid:
     def __init__(self, model_1, model_2):
         self.model_1 = model_1
@@ -212,7 +236,6 @@ y = family_sales.loc[:, 'sales']
 dp = DeterministicProcess(index=y.index, order=1)
 X_1 = dp.in_sample()
 
-
 # X_2: Features for XGBoost
 X_2 = family_sales.drop('sales', axis=1).stack()  # onpromotion feature
 
@@ -223,3 +246,49 @@ X_2['family'] = le.fit_transform(X_2['family'])
 
 # Label encoding for seasonality
 X_2["day"] = X_2.index.day  # values are day of the month
+
+# Create model
+model = BoostedHybrid(
+    model_1=LinearRegression(),
+    model_2=XGBRegressor())
+
+model.fit(X_1, X_2, y)
+
+y_pred = model.predict(X_1, X_2)
+y_pred = y_pred.clip(0.0)
+
+# Boosted Hybrid
+model = BoostedHybrid(
+    model_1=Ridge(),
+    model_2=KNeighborsRegressor(),
+)
+
+
+y_train, y_valid = y[:"2017-07-01"], y["2017-07-02":]
+X1_train, X1_valid = X_1[: "2017-07-01"], X_1["2017-07-02" :]
+X2_train, X2_valid = X_2.loc[:"2017-07-01"], X_2.loc["2017-07-02":]
+
+# Some of the algorithms above do best with certain kinds of
+# preprocessing on the features (like standardization), but this is
+# just a demo.
+model.fit(X1_train, X2_train, y_train)
+y_fit = model.predict(X1_train, X2_train).clip(0.0)
+y_pred = model.predict(X1_valid, X2_valid).clip(0.0)
+
+families = y.columns[0:6]
+axs = y.loc(axis=1)[families].plot(subplots=True,
+                                   sharex=True,
+                                   figsize=(30, 20),
+                                   color="0.75",
+                                   style=".-",
+                                   markeredgecolor="0.25",
+                                   markerfacecolor="0.25",
+                                   alpha=0.5)
+_ = y_fit.loc(axis=1)[families].plot(subplots=True, sharex=True, color='C0', ax=axs)
+_ = y_pred.loc(axis=1)[families].plot(subplots=True, sharex=True, color='C3', ax=axs)
+for ax, family in zip(axs, families):
+    ax.legend([])
+    ax.set_ylabel(family)
+plt.show()
+
+
