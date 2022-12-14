@@ -4,7 +4,7 @@ import pandas as pd
 import seaborn as sns
 import matplotlib.pyplot as plt
 from matplotlib.colors import ListedColormap
-from statsmodels.tsa.deterministic import CalendarFourier, DeterministicProcess
+# from statsmodels.tsa.deterministic import CalendarFourier, DeterministicProcess
 from sklearn.linear_model import LinearRegression
 from pandas import date_range
 from statsmodels.graphics.tsaplots import plot_pacf
@@ -292,3 +292,91 @@ for ax, family in zip(axs, families):
 plt.show()
 
 
+"""
+6. machine learning forecast
+"""
+
+# train data
+store_sales = df_train.copy()
+store_sales['date'] = store_sales.date.dt.to_period('D')
+store_sales = store_sales.set_index(['store_nbr', 'family', 'date']).sort_index()
+# store_sales = store_sales.set_index([ 'date', 'store_nbr', 'family']).sort_index()
+
+family_sales = (
+    store_sales
+    .groupby(['family', 'date'])
+    .mean()
+    .unstack('family')
+    .loc['2017']
+)
+
+len(family_sales.columns)
+
+# test data
+test = df_test.copy()
+test['date'] = test.date.dt.to_period('D')
+test = test.set_index(['store_nbr', 'family', 'date']).sort_index()
+
+def make_lags(ts, lags):
+    return pd.concat(
+        {f'y_lag_{i}': ts.shift(i) for i in range(1, lags + 1)}, axis=1)
+def make_multistep_target(ts, steps):
+    return pd.concat({f'y_step_{i + 1}': ts.shift(-i) for i in range(steps)},axis=1)
+
+y = family_sales.loc[:, 'sales']
+
+# make 4 lag features
+X = make_lags(y, lags=5).dropna()
+# make multistep target
+y = make_multistep_target(y, steps=16).dropna()
+y, X = y.align(X, join='inner', axis=0)
+
+# df_train.head()
+# family_sales.columns
+# family_sales['id'].head()
+# family_sales['id'].columns
+# family_sales['sales'].head()
+
+le = LabelEncoder()
+X = (X
+    .stack('family')  # wide to long
+    .reset_index('family')  # convert index to column
+    .assign(family=lambda x: le.fit_transform(x.family))  # label encode
+)
+y = y.stack('family')  # wide to long
+
+# init model
+model = RegressorChain(base_estimator=XGBRegressor(objective='reg:squarederror'))
+
+# train model
+model.fit(X, y)
+y_pred = pd.DataFrame(model.predict(X), index=y.index,columns=y.columns).clip(0.0)
+
+
+y_pred.head()
+
+# # helpful function
+# def plot_multistep(y, every=1, ax=None, palette_kwargs=None):
+#     palette_kwargs_ = dict(palette='husl', n_colors=16, desat=None)
+#     if palette_kwargs is not None:
+#         palette_kwargs_.update(palette_kwargs)
+#     palette = sns.color_palette(**palette_kwargs_)
+#     if ax is None:
+#         fig, ax = plt.subplots()
+#     ax.set_prop_cycle(plt.cycler('color', palette))
+#     for date, preds in y[::every].iterrows():
+#         preds.index = pd.period_range(start=date, periods=len(preds))
+#         preds.plot(ax=ax)
+#     return ax
+#
+# FAMILY = 'BEAUTY'
+# START = '2017-04-01'
+# EVERY = 16
+#
+# y_pred_ = y_pred.xs(FAMILY, level='family', axis=0).loc[START:]
+# y_ = family_sales.loc[START:, 'sales'].loc[:, FAMILY]
+#
+# fig, ax = plt.subplots(1, 1, figsize=(11, 4))
+# ax = y_.plot(color="0.75",style=".-",markeredgecolor="0.25", markerfacecolor="0.25",ax=ax, alpha=0.5)
+# ax = plot_multistep(y_pred_, ax=ax, every=EVERY)
+# _ = ax.legend([FAMILY, FAMILY + ' Forecast'])
