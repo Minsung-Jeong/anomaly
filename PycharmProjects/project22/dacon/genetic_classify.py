@@ -3,8 +3,9 @@ import numpy as np
 import matplotlib.pyplot as plt
 import seaborn as sns
 
-from collections import Counter
+from catboost import CatBoostClassifier
 
+import catboost as cb
 from sklearn.ensemble import RandomForestClassifier, AdaBoostClassifier, GradientBoostingClassifier, ExtraTreesClassifier, VotingClassifier
 from sklearn.discriminant_analysis import LinearDiscriminantAnalysis
 from sklearn.linear_model import LogisticRegression
@@ -85,7 +86,7 @@ classifiers.append(LinearDiscriminantAnalysis())
 
 
 cv_results = []
-for classifier in classifiers :
+for classifier in classifiers:
     cv_results.append(cross_val_score(classifier, train_x, y = le.fit_transform(train_y), scoring = "accuracy", cv = kfold, n_jobs=4))
 
 cv_means = []
@@ -101,14 +102,11 @@ cv_res = pd.DataFrame({"CrossValMeans":cv_means,"CrossValerrors": cv_std,"Algori
 # g.set_xlabel("Mean Accuracy")
 # g = g.set_title("Cross validation scores")
 
-cv_res.sort_values(by='CrossValMeans')['Algorithm'][-5:].values
+cv_res.sort_values(by='CrossValerrors')
 
 
 ################Hyperparameter tunning
-### copy) META MODELING  [ADABOOST, RF, EXTRATREES and GRADIENTBOOSTING]
-### 내꺼) META MODELING  ['DecisionTree', 'SVC', 'GradientBoosting', 'RandomForest', 'ExtraTrees']
-
-##############################Adaboost
+############################## 1. Adaboost
 DTC = DecisionTreeClassifier()
 adaDTC = AdaBoostClassifier(DTC, random_state=7)
 ada_param_grid = {"base_estimator__criterion" : ["gini", "entropy"],
@@ -122,7 +120,7 @@ gsadaDTC.fit(train_x,train_y)
 ada_best = gsadaDTC.best_estimator_
 print(gsadaDTC.best_score_)
 
-###########################ExtraTrees
+########################### 2. ExtraTrees
 ExtC = ExtraTreesClassifier()
 ## Search grid for optimal parameters
 ex_param_grid = {"max_depth": [None],
@@ -138,7 +136,7 @@ ExtC_best = gsExtC.best_estimator_
 # Best score
 gsExtC.best_score_
 
-################## RFC Parameters tunning
+################## 3. Random Forest
 RFC = RandomForestClassifier()
 ## Search grid for optimal parameters
 rf_param_grid = {"max_depth": [None],
@@ -155,7 +153,7 @@ RFC_best = gsRFC.best_estimator_
 # Best score
 gsRFC.best_score_
 
-######################### Gradient boosting tunning(성능 안 좋음) - acc 77나옴
+######################### 4. Gradient boosting tunning(성능 안 좋음) - acc 77나옴
 GBC = GradientBoostingClassifier()
 gb_param_grid = {'loss' : ["deviance"],
               'n_estimators' : [100,200,300],
@@ -170,26 +168,48 @@ GBC_best = gsGBC.best_estimator_
 # Best score
 gsGBC.best_score_
 
-#################### SVC classifier
+#################### 5. SVC classifier
 SVMC = SVC(probability=True)
 svc_param_grid = {'kernel': ['rbf'],
-                  'gamma': [ 0.001, 0.01, 0.1, 1],
-                  'C': [1, 10, 50, 100,200,300, 1000]}
+                  'gamma': [0.0001, 0.001, 0.01, 0.1],
+                  'C': [50, 100,200,300, 1000]}
 gsSVMC = GridSearchCV(SVMC,param_grid = svc_param_grid, cv=kfold, scoring="accuracy", n_jobs= 4, verbose = 1)
 gsSVMC.fit(train_x,train_y)
 SVMC_best = gsSVMC.best_estimator_
 # Best score
 gsSVMC.best_score_
 
-##################### MLP Classifier
+##################### 6. MLP Classifier
 MLP = MLPClassifier()
 mlp_param_grid = {'max_iter' : [300,400,500],
-                  'hidden_layer_sizes' : [64, 128, 256]}
+                  'hidden_layer_sizes' : [32, 64, 128, 256],
+                    'alpha': 10.0 ** -np.arange(3, 8)
+                  }
 
 gsMLP = GridSearchCV(MLP, param_grid=mlp_param_grid, cv=kfold, scoring="accuracy", n_jobs=4, verbose=1)
 gsMLP.fit(train_x, train_y)
 MLP_best = gsMLP.best_estimator_
 gsMLP.best_score_
+
+##################### 7. Logistic Regression
+LR = LogisticRegression()
+lr_param_grid = {"C":np.logspace(-3,3,7), "penalty":["l1","l2"]}
+gsLR = GridSearchCV(LR, param_grid=lr_param_grid, cv=kfold, scoring="accuracy", n_jobs=4, verbose=1)
+gsLR.fit(train_x,train_y)
+LR_best = gsLR.best_estimator_
+gsLR.best_score_
+
+##################### 8. catboost
+CB = CatBoostClassifier()
+parameters = {'depth': [4, 5, 6, 7, 8, 9, 10],
+              'learning_rate': [0.005, 0.001, 0.0001],
+              'iterations': [30,  70,  100]
+              }
+gsCB= GridSearchCV(CB, param_grid=TEMP, cv=kfold, scoring="accuracy", n_jobs=4, verbose=1)
+gsCB.fit(train_x, train_y)
+CB_best = gsCB.best_estimator_
+gsCB.best_score_ # 0.9541 > 0.92(depth 종류 적을 때)
+
 """
 결과 시각화 통해서 확인
 """
@@ -255,14 +275,52 @@ ensemble modeling
 # 첫번째 시도 - model_result_0, 0.96223, 76등
 # votingC = VotingClassifier(estimators=[('rfc', RFC_best), ('extc', ExtC_best),
 # ('svc', SVMC_best), ('adac',ada_best),('gbc',GBC_best)], voting='soft', n_jobs=4)
-# # 두번째 시도 - 성능 안 좋은 GBC 제거 후 앙상블
+# votingC = votingC.fit(train_x, train_y)
+
+# # 두번째 시도 - 성능 안 좋은 GBC 제거 후 앙상블, 0.96223
 # votingC = VotingClassifier(estimators=[('rfc', RFC_best), ('extc', ExtC_best),
 # ('svc', SVMC_best), ('adac',ada_best)], voting='soft', n_jobs=4)
-# 세번째 시도 - mlp 추가후 앙상블
-votingC = VotingClassifier(estimators=[('rfc', RFC_best), ('extc', ExtC_best),
-('svc', SVMC_best), ('adac',ada_best), ('mlp', MLP_best)], voting='soft', n_jobs=4)
+# votingC = votingC.fit(train_x, train_y)
 
+# # 세번째 시도 - 두 번째에 mlp 추가후 앙상블, 0.95237
+# votingC = VotingClassifier(estimators=[('rfc', RFC_best), ('extc', ExtC_best),
+# ('svc', SVMC_best), ('adac',ada_best), ('mlp', MLP_best)], voting='soft', n_jobs=4)
+
+# 네번째 시도 - GBC, MLP 다 추가,  0.95237
+# votingC = VotingClassifier(estimators=[('rfc', RFC_best), ('extc', ExtC_best),
+# ('svc', SVMC_best), ('adac',ada_best), ('mlp', MLP_best) ,('gbc',GBC_best)], voting='soft', n_jobs=4)
+# votingC = votingC.fit(train_x, train_y)
+
+# # 다섯번째 - 이전에서 ada, gbc 제거 후 진행, 0.96223
+# votingC = VotingClassifier(estimators=[('rfc', RFC_best), ('extc', ExtC_best),
+# ('svc', SVMC_best), ('mlp', MLP_best) ], voting='soft', n_jobs=4)
+# votingC = votingC.fit(train_x, train_y)
+
+#  여섯번쩨 - 위에서 mlp 제거, 0.95237
+# votingC = VotingClassifier(estimators=[('rfc', RFC_best), ('extc', ExtC_best),
+# ('svc', SVMC_best)], voting='soft', n_jobs=4)
+# votingC = votingC.fit(train_x, train_y)
+
+# 일곱번쩊 - 첫번째에 logistic 추가
+# votingC = VotingClassifier(estimators=[('rfc', RFC_best), ('extc', ExtC_best),
+# ('svc', SVMC_best), ('adac',ada_best),('gbc',GBC_best), ('lr', LR_best)], voting='soft', n_jobs=4)
+# votingC = votingC.fit(train_x, train_y)
+
+# # 여덟번째 - 첫번째에 logistic, mlp 추가
+# votingC = VotingClassifier(estimators=[('rfc', RFC_best), ('extc', ExtC_best),
+# ('svc', SVMC_best), ('adac',ada_best), ('lr', LR_best), ('mlp', MLP_best)], voting='soft', n_jobs=4)
+# votingC = votingC.fit(train_x, train_y)
+
+# # 아홉번째 - 첫번째에 logistic, mlp, gbc 추가
+# votingC = VotingClassifier(estimators=[('rfc', RFC_best), ('extc', ExtC_best),
+# ('svc', SVMC_best), ('adac',ada_best), ('lr', LR_best), ('mlp', MLP_best), ('gbc',GBC_best)], voting='soft', n_jobs=4)
+# votingC = votingC.fit(train_x, train_y)
+
+# # 열번째
+votingC = VotingClassifier(estimators=[('extc', ExtC_best),
+('svc', SVMC_best), ('mlp', MLP_best)], voting='soft', n_jobs=4)
 votingC = votingC.fit(train_x, train_y)
+
 
 pred = votingC.predict(test_df)
 
@@ -279,9 +337,9 @@ temp = pd.read_csv('./test.csv')
 temp['id']
 
 result_df = pd.DataFrame(result, index=temp['id'], columns=['class'])
-# result_df.to_csv("./model_result_2.csv")
+result_df.to_csv("./model_result_9.csv")
 
 temp1 = pd.read_csv("./model_result_0.csv")
-temp3 =  pd.read_csv("./model_result_2.csv")
+temp2 =  pd.read_csv("./model_result_2.csv")
 
-sum(temp1['class'] != temp3['class'])
+sum(temp1['class'] != temp2['class'])
