@@ -3,7 +3,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import seaborn as sns
 
-from catboost import CatBoostClassifier
+# from catboost import CatBoostClassifier
 
 import catboost as cb
 from sklearn.ensemble import RandomForestClassifier, AdaBoostClassifier, GradientBoostingClassifier, ExtraTreesClassifier, VotingClassifier
@@ -14,7 +14,7 @@ from sklearn.tree import DecisionTreeClassifier
 from sklearn.neural_network import MLPClassifier
 from sklearn.svm import SVC
 from sklearn.model_selection import GridSearchCV, cross_val_score, StratifiedKFold, learning_curve
-
+from sklearn.naive_bayes import GaussianNB
 import os
 from sklearn.preprocessing import LabelEncoder
 
@@ -55,7 +55,7 @@ test_df = test_df.drop(['id','father','mother', 'gender'], axis=1)
 le = LabelEncoder()  # from sklearn.preprocessing
 
 
-# label_dic = get_dict(list(set(train_df['class'])))
+label_dic =  {'A': 0, 'B': 1, 'C': 2}
 # train_y = train_df['class'].copy()
 # for i in range(len(train_y)):
 #     train_y[i] = label_dic[train_y[i]]
@@ -200,15 +200,31 @@ LR_best = gsLR.best_estimator_
 gsLR.best_score_
 
 ##################### 8. catboost
-CB = CatBoostClassifier()
-parameters = {'depth': [4, 5, 6, 7, 8, 9, 10],
-              'learning_rate': [0.005, 0.001, 0.0001],
-              'iterations': [30,  70,  100]
-              }
-gsCB= GridSearchCV(CB, param_grid=TEMP, cv=kfold, scoring="accuracy", n_jobs=4, verbose=1)
-gsCB.fit(train_x, train_y)
-CB_best = gsCB.best_estimator_
-gsCB.best_score_ # 0.9541 > 0.92(depth 종류 적을 때)
+# CB = CatBoostClassifier()
+# cb_param_grid = {'depth': [4, 5, 6, 7, 8, 9, 10],
+#               'learning_rate': [0.005, 0.001, 0.0001],
+#               'iterations': [30,  70,  100]
+#               }
+# gsCB= GridSearchCV(CB, param_grid=cb_param_grid, cv=kfold, scoring="accuracy", n_jobs=4, verbose=1)
+# gsCB.fit(train_x, train_y)
+# CB_best = gsCB.best_estimator_
+# gsCB.best_score_ # 0.9541 > 0.92(depth 종류 적을 때)
+
+####################### 9. KNeighborsClassifier
+KC = KNeighborsClassifier()
+kc_param_grid = {'n_neighbors':list(range(2,30))}
+gsKC = GridSearchCV(KC, param_grid=kc_param_grid, cv=kfold, scoring="accuracy", n_jobs=4, verbose=1)
+gsKC.fit(train_x, train_y)
+KC_best = gsKC.best_estimator_
+gsKC.best_score_
+
+######################## 10. Gaussian Naive Bayes
+GB = GaussianNB()
+gb_param_grid = {'var_smoothing': np.logspace(0,-9, num=50)}
+gsGB = GridSearchCV(GB, param_grid=gb_param_grid, cv=kfold, scoring="accuracy", n_jobs=4, verbose=1)
+gsGB.fit(train_x, train_y)
+GB_best = gsGB.best_estimator_
+gsGB.best_score_
 
 """
 결과 시각화 통해서 확인
@@ -272,7 +288,7 @@ for row in range(nrows):
 ensemble modeling
 """
 #
-# 첫번째 시도 - model_result_0, 0.96223, 76등
+# 첫번째 시도 - model_result_0, 0.96223, 76등 => 다음날 돌리니까 0.97
 # votingC = VotingClassifier(estimators=[('rfc', RFC_best), ('extc', ExtC_best),
 # ('svc', SVMC_best), ('adac',ada_best),('gbc',GBC_best)], voting='soft', n_jobs=4)
 # votingC = votingC.fit(train_x, train_y)
@@ -316,15 +332,25 @@ ensemble modeling
 # ('svc', SVMC_best), ('adac',ada_best), ('lr', LR_best), ('mlp', MLP_best), ('gbc',GBC_best)], voting='soft', n_jobs=4)
 # votingC = votingC.fit(train_x, train_y)
 
-# # 열번째
-votingC = VotingClassifier(estimators=[('extc', ExtC_best),
-('svc', SVMC_best), ('mlp', MLP_best)], voting='soft', n_jobs=4)
+# # 열번째 - 0.97 == 첫번째
+# votingC = VotingClassifier(estimators=[('extc', ExtC_best),
+# ('svc', SVMC_best), ('mlp', MLP_best),  ('lr', LR_best),('kc', KC_best)], voting='soft', n_jobs=4)
+# votingC = votingC.fit(train_x, train_y)
+
+# # 열한번쨰 = 결과 모름(해봐야함)
+# votingC = VotingClassifier(estimators=[('rfc', RFC_best), ('extc', ExtC_best),
+# ('svc', SVMC_best), ('adac',ada_best),('kc', KC_best)], voting='soft', n_jobs=4)
+# votingC = votingC.fit(train_x, train_y)
+
+
+# 열두번쨰 = 결과 모름(해봐야함)
+votingC = VotingClassifier(estimators=[('rfc', RFC_best), ('extc', ExtC_best),
+('svc', SVMC_best), ('adac',ada_best),('kc', KC_best), ('gb', GB_best)], voting='soft', n_jobs=4)
 votingC = votingC.fit(train_x, train_y)
 
 
 pred = votingC.predict(test_df)
-
-label_dic = get_dict(list(set(train_df['class'])))
+# label_dic = get_dict(list(set(train_df['class'])))
 label_rev_dic = {}
 for i, x in enumerate(label_dic):
     label_rev_dic[i] = x
@@ -337,9 +363,13 @@ temp = pd.read_csv('./test.csv')
 temp['id']
 
 result_df = pd.DataFrame(result, index=temp['id'], columns=['class'])
-result_df.to_csv("./model_result_9.csv")
+# result_df.to_csv("./model_result_11.csv")
 
-temp1 = pd.read_csv("./model_result_0.csv")
-temp2 =  pd.read_csv("./model_result_2.csv")
+temp1 = pd.read_csv("./model_result_9.csv")
+temp2 = pd.read_csv("./model_result_10.csv")
+temp3 = pd.read_csv("./model_result_11.csv")
+
 
 sum(temp1['class'] != temp2['class'])
+sum(temp1['class'] != temp3['class'])
+sum(temp2['class'] != temp3['class'])
