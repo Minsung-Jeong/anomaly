@@ -337,16 +337,31 @@ ensemble modeling
 # ('svc', SVMC_best), ('mlp', MLP_best),  ('lr', LR_best),('kc', KC_best)], voting='soft', n_jobs=4)
 # votingC = votingC.fit(train_x, train_y)
 
-# # 열한번쨰 = 결과 모름(해봐야함)
+# # # 열한번쨰 = 결과 모름(해봐야함)
 # votingC = VotingClassifier(estimators=[('rfc', RFC_best), ('extc', ExtC_best),
-# ('svc', SVMC_best), ('adac',ada_best),('kc', KC_best)], voting='soft', n_jobs=4)
+# ('svc', SVMC_best), ('adac',ada_best),('kc', KC_best), ('mlp', MLP_best)], voting='soft', n_jobs=4)
+# votingC = votingC.fit(train_x, train_y)
+#
+#
+# # 열두번쨰 = 결과 모름(해봐야함)
+# votingC = VotingClassifier(estimators=[('rfc', RFC_best), ('extc', ExtC_best),
+# ('svc', SVMC_best), ('adac',ada_best),('kc', KC_best), ('gb', GB_best)], voting='soft', n_jobs=4)
 # votingC = votingC.fit(train_x, train_y)
 
-
-# 열두번쨰 = 결과 모름(해봐야함)
-votingC = VotingClassifier(estimators=[('rfc', RFC_best), ('extc', ExtC_best),
-('svc', SVMC_best), ('adac',ada_best),('kc', KC_best), ('gb', GB_best)], voting='soft', n_jobs=4)
-votingC = votingC.fit(train_x, train_y)
+# 열세번쨰 = 결과 모름(해봐야함)
+# votingC = VotingClassifier(estimators=[('rfc', RFC_best), ('extc', ExtC_best),
+# ('svc', SVMC_best), ('adac',ada_best),('kc', KC_best), ('gb', GB_best), ('mlp', MLP_best)], voting='soft', n_jobs=4)
+# votingC = votingC.fit(train_x, train_y)
+#
+# # 열네번
+# votingC = VotingClassifier(estimators=[('rfc', RFC_best), ('extc', ExtC_best),
+# ('svc', SVMC_best), ('adac',ada_best),('kc', KC_best), ('mlp', MLP_best)], voting='soft', n_jobs=4)
+# votingC = votingC.fit(train_x, train_y)
+#
+# # 열다섯번
+# votingC = VotingClassifier(estimators=[('rfc', RFC_best), ('extc', ExtC_best),
+# ('svc', SVMC_best), ('kc', KC_best), ('mlp', MLP_best)], voting='soft', n_jobs=4)
+# votingC = votingC.fit(train_x, train_y)
 
 
 pred = votingC.predict(test_df)
@@ -363,13 +378,13 @@ temp = pd.read_csv('./test.csv')
 temp['id']
 
 result_df = pd.DataFrame(result, index=temp['id'], columns=['class'])
-# result_df.to_csv("./model_result_11.csv")
+result_df.to_csv("./model_result_14.csv")
 
-temp1 = pd.read_csv("./model_result_9.csv")
-temp2 = pd.read_csv("./model_result_10.csv")
+temp1 = pd.read_csv("./model_result_11_h.csv")
+temp2 = pd.read_csv("./model_result_14.csv")
 temp3 = pd.read_csv("./model_result_11.csv")
-
-
+#
+#
 sum(temp1['class'] != temp2['class'])
 sum(temp1['class'] != temp3['class'])
 sum(temp2['class'] != temp3['class'])
