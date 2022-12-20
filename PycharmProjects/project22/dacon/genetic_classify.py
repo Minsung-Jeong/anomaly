@@ -3,6 +3,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import seaborn as sns
 
+import xgboost as xgb
 # from catboost import CatBoostClassifier
 
 import catboost as cb
@@ -116,11 +117,11 @@ adaDTC = AdaBoostClassifier(DTC, random_state=9)
 gsadaDTC = GridSearchCV(adaDTC,param_grid = ada_param_grid, cv=kfold, scoring="accuracy", n_jobs= 4, verbose = 1)
 gsadaDTC.fit(train_x,train_y)
 ada_best = gsadaDTC.best_estimator_
-gsadaDTC.best_score_
+print(gsadaDTC.best_score_)
 
 
 ########################### 2. ExtraTrees
-# rs : max38, mid99, min91
+# rs : max38(94.26>93.78), mid99, min91
 ex_param_grid = {"max_depth": [None],
               "max_features": [1, 3, 10],
               "min_samples_split": [2, 3, 10],
@@ -129,7 +130,7 @@ ex_param_grid = {"max_depth": [None],
               "n_estimators" :[100,300],
               "criterion": ["gini"]}
 
-ExtC = ExtraTreesClassifier(random_state=99)
+ExtC = ExtraTreesClassifier(random_state=38)
 gsExtC = GridSearchCV(ExtC,param_grid = ex_param_grid, cv=kfold, scoring="accuracy", n_jobs= 4, verbose = 1)
 gsExtC.fit(train_x,train_y)
 ExtC_best = gsExtC.best_estimator_
@@ -147,7 +148,7 @@ rf_param_grid = {"max_depth": [None],
               "n_estimators" :[100,300],
               "criterion": ["gini"]}
 
-RFC = RandomForestClassifier(random_state=47)
+RFC = RandomForestClassifier(random_state=34)
 gsRFC = GridSearchCV(RFC,param_grid = rf_param_grid, cv=kfold, scoring="accuracy", n_jobs= 4, verbose = 1)
 gsRFC.fit(train_x, train_y)
 RFC_best = gsRFC.best_estimator_
@@ -174,7 +175,7 @@ GBC_best = gsGBC.best_estimator_
 gsGBC.best_score_
 
 
-#################### 5. SVC classifier
+#################### 5. SVC classifier(90.8)
 svc_param_grid = {'kernel': ['rbf'],
                   'gamma': [0.0001, 0.001, 0.01, 0.1],
                   'C': [50, 100,200,300, 1000]}
@@ -184,7 +185,7 @@ SVMC = SVC(probability=True, random_state=0)
 gsSVMC = GridSearchCV(SVMC,param_grid = svc_param_grid, cv=kfold, scoring="accuracy", n_jobs= 4, verbose = 1)
 gsSVMC.fit(train_x,train_y)
 SVMC_best = gsSVMC.best_estimator_
-gsSVMC.best_score_
+print(gsSVMC.best_score_)
 
 ##################### 6. MLP Classifier
 #random_state : 33, 56 => 93.148
@@ -236,6 +237,20 @@ gsGB.fit(train_x, train_y)
 GB_best = gsGB.best_estimator_
 gsGB.best_score_
 
+# 11. xgb : 93.51
+XGB = xgb.XGBClassifier()
+xgb_param_grid = {
+    'n_estimators': [100, 200, 300, 400, 500],
+    'learning_rate': [0.01, 0.05, 0.1, 0.15],
+    'max_depth': [3, 5, 7, 10, 15],
+    'gamma': [0, 1, 2, 3],
+    'colsample_bytree': [0.8, 0.9]
+}
+
+gsXGB = GridSearchCV(XGB, param_grid=gb_param_grid, cv=kfold, scoring="accuracy", n_jobs=4, verbose=1)
+gsXGB.fit(train_x.astype(int), train_y)
+XGB_best = gsXGB.best_estimator_
+print(gsXGB.best_score_)
 """
 결과 시각화 통해서 확인
 """
