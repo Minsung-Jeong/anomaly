@@ -25,6 +25,15 @@ def get_dict(data):
         dic_x[x] = i
     return dic_x
 
+def check_bool(temp1, temp2):
+    diff = sum(temp1['class'] != temp2['class'])
+    li = []
+    for i in range(len(temp1)):
+        if temp1['class'][i] != temp2['class'][i]:
+            li.append(i)
+    print('개수', diff, 'list', li)
+    return diff, li
+
 os.getcwd()
 os.chdir("C://data_minsung/dacon")
 train_df = pd.read_csv('./train.csv')
@@ -117,11 +126,11 @@ adaDTC = AdaBoostClassifier(DTC, random_state=9)
 gsadaDTC = GridSearchCV(adaDTC,param_grid = ada_param_grid, cv=kfold, scoring="accuracy", n_jobs= 4, verbose = 1)
 gsadaDTC.fit(train_x,train_y)
 ada_best = gsadaDTC.best_estimator_
-print(gsadaDTC.best_score_)
+print('ada', gsadaDTC.best_score_)
 
 
 ########################### 2. ExtraTrees
-# rs : max38(94.26>93.78), mid99, min91
+# rs : max38(94.26>93.78>96.2108), mid99, min91
 ex_param_grid = {"max_depth": [None],
               "max_features": [1, 3, 10],
               "min_samples_split": [2, 3, 10],
@@ -134,11 +143,11 @@ ExtC = ExtraTreesClassifier(random_state=38)
 gsExtC = GridSearchCV(ExtC,param_grid = ex_param_grid, cv=kfold, scoring="accuracy", n_jobs= 4, verbose = 1)
 gsExtC.fit(train_x,train_y)
 ExtC_best = gsExtC.best_estimator_
-gsExtC.best_score_
+print('extra tree', gsExtC.best_score_)
 
 
 ################## 3. Random Forest
-# max 34, mid47(96.56), min48(96.18)
+# max 34, mid47(96.56>95.82), min48(96.18)
 ## Search grid for optimal parameters
 rf_param_grid = {"max_depth": [None],
               "max_features": [1, 3, 10],
@@ -148,13 +157,11 @@ rf_param_grid = {"max_depth": [None],
               "n_estimators" :[100,300],
               "criterion": ["gini"]}
 
-RFC = RandomForestClassifier(random_state=34)
+RFC = RandomForestClassifier(random_state=47)
 gsRFC = GridSearchCV(RFC,param_grid = rf_param_grid, cv=kfold, scoring="accuracy", n_jobs= 4, verbose = 1)
 gsRFC.fit(train_x, train_y)
 RFC_best = gsRFC.best_estimator_
-
-# Best score
-gsRFC.best_score_
+print('rfc', gsRFC.best_score_)
 ######################### 4. Gradient boosting tunning(성능 안 좋음) - acc 77나옴
 
 gb_param_grid = {'loss' : ["deviance"],
@@ -172,7 +179,7 @@ GBC_best = gsGBC.best_estimator_
 # gb_rs.append(i)
 # gb_score.append(gsGBC.best_score_)
 # Best score
-gsGBC.best_score_
+print('gbc',gsGBC.best_score_)
 
 
 #################### 5. SVC classifier(90.8)
@@ -188,19 +195,19 @@ SVMC_best = gsSVMC.best_estimator_
 print(gsSVMC.best_score_)
 
 ##################### 6. MLP Classifier
-#random_state : 33, 56 => 93.148
+#random_state : 33, 56 => 93.148, 31=>93.93
 mlp_param_grid = {'max_iter' : [300,400,500],
                   'hidden_layer_sizes' : [32, 64, 128],
-                    'alpha': 10.0 ** -np.arange(3, 8)
+                    'alpha': 10.0 ** -np.arange(3, 7)
                   }
-mlp_rs = []
-for i in range(50):
-    MLP = MLPClassifier(random_state=i)
-    gsMLP = GridSearchCV(MLP, param_grid=mlp_param_grid, cv=kfold, scoring="accuracy", n_jobs=4, verbose=1)
-    gsMLP.fit(train_x, train_y)
-    MLP_best = gsMLP.best_estimator_
-    mlp_rs.append(gsMLP.best_score_)
-gsMLP.best_score_
+
+MLP = MLPClassifier(random_state=i)
+gsMLP = GridSearchCV(MLP, param_grid=mlp_param_grid, cv=kfold, scoring="accuracy", n_jobs=4, verbose=1)
+gsMLP.fit(train_x, train_y)
+MLP_best = gsMLP.best_estimator_
+
+print('mlp' , gsMLP.best_score_)
+
 ##################### 7. Logistic Regression(92.39)
 lr_param_grid = {"C":np.logspace(-3,3,7), "penalty":["l1","l2"]}
 
@@ -208,7 +215,7 @@ LR = LogisticRegression()
 gsLR = GridSearchCV(LR, param_grid=lr_param_grid, cv=kfold, scoring="accuracy", n_jobs=4, verbose=1)
 gsLR.fit(train_x,train_y)
 LR_best = gsLR.best_estimator_
-gsLR.best_score_
+print('lr', gsLR.best_score_)
 
 ##################### 8. catboost
 # CB = CatBoostClassifier()
@@ -227,7 +234,7 @@ kc_param_grid = {'n_neighbors':list(range(2,30))}
 gsKC = GridSearchCV(KC, param_grid=kc_param_grid, cv=kfold, scoring="accuracy", n_jobs=4, verbose=1)
 gsKC.fit(train_x, train_y)
 KC_best = gsKC.best_estimator_
-gsKC.best_score_
+print('kc', gsKC.best_score_)
 
 ######################## 10. Gaussian Naive Bayes
 GB = GaussianNB()
@@ -235,10 +242,10 @@ gb_param_grid = {'var_smoothing': np.logspace(0,-9, num=50)}
 gsGB = GridSearchCV(GB, param_grid=gb_param_grid, cv=kfold, scoring="accuracy", n_jobs=4, verbose=1)
 gsGB.fit(train_x, train_y)
 GB_best = gsGB.best_estimator_
-gsGB.best_score_
+print('gbc', gsGB.best_score_)
 
-# 11. xgb : 93.51
-XGB = xgb.XGBClassifier()
+# 11. xgb : 93.9
+XGB = xgb.XGBClassifier(random_state=10)
 xgb_param_grid = {
     'n_estimators': [100, 200, 300, 400, 500],
     'learning_rate': [0.01, 0.05, 0.1, 0.15],
@@ -250,7 +257,21 @@ xgb_param_grid = {
 gsXGB = GridSearchCV(XGB, param_grid=gb_param_grid, cv=kfold, scoring="accuracy", n_jobs=4, verbose=1)
 gsXGB.fit(train_x.astype(int), train_y)
 XGB_best = gsXGB.best_estimator_
-print(gsXGB.best_score_)
+print('xgb',gsXGB.best_score_)
+
+
+# 비교
+print('ada', gsadaDTC.best_score_)
+print('extra tree', gsExtC.best_score_)
+print('rfc', gsRFC.best_score_)
+print('gbc',gsGBC.best_score_)
+print('svc', gsSVMC.best_score_)
+print('mlp' , gsMLP.best_score_)
+print('lr', gsLR.best_score_)
+print('kc', gsKC.best_score_)
+print('gbc', gsGB.best_score_)
+print('xgb',gsXGB.best_score_)
+
 """
 결과 시각화 통해서 확인
 """
@@ -373,11 +394,14 @@ ensemble modeling
 # votingC = votingC.fit(train_x, train_y)
 
 # 십구 - model은 5개 이하로
-votingC = VotingClassifier(estimators=[('ada',ada_best), ('rfc', RFC_best),
-('extc', ExtC_best), ('gb', GB_best),  ('kc', KC_best)], voting='soft', n_jobs=4)
-votingC = votingC.fit(train_x, train_y)
+# votingC = VotingClassifier(estimators=[('rfc', RFC_best), ('extc', ExtC_best), ('gb', GB_best),('xgb', XGB_best)], voting='soft', n_jobs=4)
+# votingC = votingC.fit(train_x.astype(int), train_y.astype(int))
 
-pred = votingC.predict(test_df)
+# 이십 - model은 5개 이하로
+votingC = VotingClassifier(estimators=[('rfc', RFC_best), ('extc', ExtC_best),('svc', SVMC_best)], voting='soft', n_jobs=4)
+votingC = votingC.fit(train_x.astype(int), train_y.astype(int))
+
+pred = votingC.predict(test_df.astype(int))
 # label_dic = get_dict(list(set(train_df['class'])))
 label_rev_dic = {}
 for i, x in enumerate(label_dic):
@@ -388,18 +412,17 @@ for x in pred:
     result.append(label_rev_dic[x])
 
 temp = pd.read_csv('./test.csv')
-temp['id']
 
 result_df = pd.DataFrame(result, index=temp['id'], columns=['class'])
-result_df.to_csv("./model_result_19_mid.csv")
+result_df.to_csv("./model_result_20_2.csv")
 
-temp = pd.read_csv("./model_result_17_mid.csv")
-temp1 = pd.read_csv("./model_result_19_mid.csv")
+
+temp1 = pd.read_csv("./model_result_20_2.csv")
 temp2 = pd.read_csv("./model_result_14.csv")
-temp3 = pd.read_csv("./model_result_18_mid.csv")
+temp3 = pd.read_csv("./model_result_temp42.csv")
 #
 #
-sum(temp1['class'] != temp2['class'])
-sum(temp1['class'] != temp3['class'])
-sum(temp2['class'] != temp3['class'])
-sum(temp['class'] != temp1['class'])
+
+check_bool(temp1, temp2)
+check_bool(temp2, temp3)
+check_bool(temp1, temp3)

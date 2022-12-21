@@ -77,21 +77,21 @@ train_x = train_df.drop('class', axis=1)
 
 
 # Cross validate model with Kfold stratified cross val
-kfold = StratifiedKFold(n_splits=10)
-
-# adaboost
-DTC = DecisionTreeClassifier(random_state=7)
-ada_param_grid = {"base_estimator__criterion" : ["gini", "entropy"],
-              "base_estimator__splitter" :   ["best", "random"],
-              "algorithm" : ["SAMME","SAMME.R"],
-              "n_estimators" :[1,2, 3, 4],
-              "learning_rate":  [0.000001, 0.00001, 0.001, 0.01]}
-
-adaDTC = AdaBoostClassifier(DTC, random_state=99)
-gsadaDTC = GridSearchCV(adaDTC,param_grid = ada_param_grid, cv=kfold, scoring="accuracy", n_jobs= 4, verbose = 1)
-gsadaDTC.fit(train_x,train_y)
-ada_best = gsadaDTC.best_estimator_
-print(gsadaDTC.best_score_)
+# kfold = StratifiedKFold(n_splits=10)
+#
+# # adaboost
+# DTC = DecisionTreeClassifier(random_state=7)
+# ada_param_grid = {"base_estimator__criterion" : ["gini", "entropy"],
+#               "base_estimator__splitter" :   ["best", "random"],
+#               "algorithm" : ["SAMME","SAMME.R"],
+#               "n_estimators" :[1,2, 3, 4],
+#               "learning_rate":  [0.000001, 0.00001, 0.001, 0.01]}
+#
+# adaDTC = AdaBoostClassifier(DTC, random_state=99)
+# gsadaDTC = GridSearchCV(adaDTC,param_grid = ada_param_grid, cv=kfold, scoring="accuracy", n_jobs= 4, verbose = 1)
+# gsadaDTC.fit(train_x,train_y)
+# ada_best = gsadaDTC.best_estimator_
+# print(gsadaDTC.best_score_)
 
 
 #참고 et_cl = ExtraTreesClassifier(n_estimators=1000, min_samples_leaf=9, min_samples_split=6, max_features=40)
@@ -99,19 +99,19 @@ print(gsadaDTC.best_score_)
 #                      random_state=38)
 # 더높은점수결과 : ExtraTreesClassifier(max_features=3, min_samples_split=6, random_state=38)
 # rs(이전 버전) : max38(95), mid99, min91
-ex_param_grid = {"max_depth": [None],
-              "max_features": [1, 3, 10, 30, 40],
-              "min_samples_split": [2, 6, 10],
-              "min_samples_leaf": [1, 3, 9],
-              "bootstrap": [False],
-              "n_estimators" :[100, 300, 500, 1000],
-              "criterion": ["gini"]}
-
-ExtC = ExtraTreesClassifier(random_state=38)
-gsExtC = GridSearchCV(ExtC,param_grid=ex_param_grid, cv=kfold, scoring="accuracy", n_jobs= 4, verbose = 1)
-gsExtC.fit(train_x,train_y)
-ExtC_best = gsExtC.best_estimator_
-gsExtC.best_score_
+# ex_param_grid = {"max_depth": [None],
+#               "max_features": [1, 3, 10, 30, 40],
+#               "min_samples_split": [2, 6, 10],
+#               "min_samples_leaf": [1, 3, 9],
+#               "bootstrap": [False],
+#               "n_estimators" :[100, 300, 500, 1000],
+#               "criterion": ["gini"]}
+#
+# ExtC = ExtraTreesClassifier(random_state=38)
+# gsExtC = GridSearchCV(ExtC,param_grid=ex_param_grid, cv=kfold, scoring="accuracy", n_jobs= 4, verbose = 1)
+# gsExtC.fit(train_x,train_y)
+# ExtC_best = gsExtC.best_estimator_
+# gsExtC.best_score_
 
 
 # rf_reg = RandomForestRegressor(n_estimators=1000, min_samples_leaf=9, min_samples_split=6, max_features=20)
@@ -139,16 +139,16 @@ gsExtC.best_score_
 # gsRFC.best_score_
 
 ##################################svc(95)
-svc_param_grid = {'kernel': ['rbf'],
-                  'gamma': [0.0001, 0.001, 0.01, 0.1, 0.2, 0.3],
-                  'C': range(20,60)}
-
-# random state 상관없이 다 같음
-SVMC = SVC(probability=True, random_state=0)
-gsSVMC = GridSearchCV(SVMC,param_grid = svc_param_grid, cv=kfold, scoring="accuracy", n_jobs= 4, verbose = 1)
-gsSVMC.fit(train_x,train_y)
-SVMC_best = gsSVMC.best_estimator_
-print(gsSVMC.best_score_)
+# svc_param_grid = {'kernel': ['rbf'],
+#                   'gamma': [0.0001, 0.001, 0.01, 0.1, 0.2, 0.3],
+#                   'C': range(20,60)}
+#
+# # random state 상관없이 다 같음
+# SVMC = SVC(probability=True, random_state=0)
+# gsSVMC = GridSearchCV(SVMC,param_grid = svc_param_grid, cv=kfold, scoring="accuracy", n_jobs= 4, verbose = 1)
+# gsSVMC.fit(train_x,train_y)
+# SVMC_best = gsSVMC.best_estimator_
+# print(gsSVMC.best_score_)
 
 #############################################\
 
@@ -160,20 +160,23 @@ ada = AdaBoostClassifier(algorithm='SAMME',
 # extc = ExtraTreesClassifier(max_features=1, min_samples_split=10, n_estimators=300,
 #                      random_state=38)
 extc = ExtraTreesClassifier(max_features=3, min_samples_split=6, random_state=38)
-
 rfc = RandomForestClassifier(bootstrap=False, max_features=1, min_samples_leaf=2,
                        min_samples_split=7, n_estimators=500, random_state=47)
-
 gnb = GaussianNB(var_smoothing=0.12067926406393285)
 svc = SVC(C=23, gamma=0.01, probability=True, random_state=0)
-xgb = xgb.XGBClassifier(max_depth = 6,gamma=0,colsample_bytree=1,learning_rate=0.300000012,n_estimators = 100)
+xgb = xgb.XGBClassifier(objective='multi:softprob', random_state=10, var_smoothing=1.0)
+kc = KNeighborsClassifier(n_neighbors=7)
 
 # votingC = VotingClassifier(estimators=[('rfc', rfc), ('extc', extc), ('gnb', gnb),('svc', svc)], voting='soft', n_jobs=4) #temp
 # votingC = VotingClassifier(estimators=[('rfc', rfc), ('gnb', gnb),('svc', svc)], voting='soft', n_jobs=4) #temp2
 # votingC = VotingClassifier(estimators=[('ada', ada),('extc', extc), ('rfc', rfc), ('gnb', gnb),('svc', svc)], voting='soft', n_jobs=4) #temp3
-votingC = VotingClassifier(estimators=[('xgb', xgb),('extc', extc), ('rfc', rfc), ('gnb', gnb),('svc', svc)], voting='soft', n_jobs=4) #temp4
-votingC = votingC.fit(train_x.astype(int), train_y)
+# votingC = VotingClassifier(estimators=[('xgb', xgb),('extc', extc), ('rfc', rfc), ('gnb', gnb),('svc', svc)], voting='soft', n_jobs=4) #temp4
+# votingC = VotingClassifier(estimators=[('xgb', xgb),('extc', extc), ('rfc', rfc), ('gnb', gnb)], voting='soft', n_jobs=4) #temp5(best)
+# votingC = VotingClassifier(estimators=[('extc', extc), ('rfc', rfc),('gnb', gnb)], voting='soft', n_jobs=4) #temp6(=temp5)
 
+
+
+votingC = votingC.fit(train_x.astype(int), train_y)
 pred = votingC.predict(test_df.astype(int))
 # label_dic = get_dict(list(set(train_df['class'])))
 label_rev_dic = {}
@@ -188,16 +191,13 @@ temp = pd.read_csv('./test.csv')
 temp['id']
 
 result_df = pd.DataFrame(result, index=temp['id'], columns=['class'])
-result_df.to_csv("./model_result_temp4.csv")
+result_df.to_csv("./model_result_temp6.csv")
 
 
-temp1 = pd.read_csv("./model_result_temp4.csv")
-
-temp2 = pd.read_csv("./model_result_temp_max.csv")
-temp3 = pd.read_csv("./model_result_14.csv")
+temp1 = pd.read_csv("./model_result_temp6.csv")
+temp2 = pd.read_csv("./model_result_temp5.csv")
+temp3 = pd.read_csv("./model_result_11.csv")
 #
-
-
 check_bool(temp1, temp2)
 check_bool(temp2, temp3)
 check_bool(temp1, temp3)
