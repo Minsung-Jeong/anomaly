@@ -5,8 +5,7 @@ import seaborn as sns
 import xgboost as xgb
 # from catboost import CatBoostClassifier
 from lightgbm import LGBMClassifier
-from sklearn.metrics import log_loss
-from sklearn.metrics import accuracy_score
+from sklearn.metrics import log_loss, accuracy_score, f1_score, make_scorer
 from sklearn.model_selection import train_test_split
 import catboost as cb
 from sklearn.ensemble import RandomForestClassifier, AdaBoostClassifier, GradientBoostingClassifier, ExtraTreesClassifier, VotingClassifier
@@ -18,8 +17,11 @@ from sklearn.neural_network import MLPClassifier
 from sklearn.svm import SVC
 from sklearn.model_selection import GridSearchCV, cross_val_score, StratifiedKFold, learning_curve
 from sklearn.naive_bayes import GaussianNB
-import os
 from sklearn.preprocessing import LabelEncoder
+
+
+import os
+
 
 import optuna
 from optuna import Trial
@@ -70,103 +72,6 @@ label_dic =  {'A': 0, 'B': 1, 'C': 2}
 train_y = le.fit_transform(train_df['class'].copy())
 train_x = train_df.drop('class', axis=1)
 
-# y = le.fit_transform(train_df['class'].copy())
-# x = train_df.drop('class', axis=1)
-#
-# train_size = int(len(x)*0.8)
-# train_x = x.iloc[:train_size]
-# train_y = y[:train_size]
-# test_x = x.iloc[train_size:]
-# test_y = y[train_size:]
-
-
-# train_df.groupby(by='class').count()
-
-
-# Cross validate model with Kfold stratified cross val
-# kfold = StratifiedKFold(n_splits=10)
-#
-# # adaboost
-# DTC = DecisionTreeClassifier(random_state=7)
-# ada_param_grid = {"base_estimator__criterion" : ["gini", "entropy"],
-#               "base_estimator__splitter" :   ["best", "random"],
-#               "algorithm" : ["SAMME","SAMME.R"],
-#               "n_estimators" :[1,2, 3, 4],
-#               "learning_rate":  [0.000001, 0.00001, 0.001, 0.01]}
-#
-# adaDTC = AdaBoostClassifier(DTC, random_state=99)
-# gsadaDTC = GridSearchCV(adaDTC,param_grid = ada_param_grid, cv=kfold, scoring="accuracy", n_jobs= 4, verbose = 1)
-# gsadaDTC.fit(train_x,train_y)
-# ada_best = gsadaDTC.best_estimator_
-# print(gsadaDTC.best_score_)
-
-
-#참고 et_cl = ExtraTreesClassifier(n_estimators=1000, min_samples_leaf=9, min_samples_split=6, max_features=40)
-# 결과 : ExtraTreesClassifier(max_features=1, min_samples_split=10, n_estimators=300,
-#                      random_state=38)
-# 더높은점수결과 : ExtraTreesClassifier(max_features=3, min_samples_split=6, random_state=38)
-# rs(이전 버전) : max38(95), mid99, min91
-# ex_param_grid = {"max_depth": [None],
-#               "max_features": [1, 3, 10, 30, 40],
-#               "min_samples_split": [2, 6, 10],
-#               "min_samples_leaf": [1, 3, 9],
-#               "bootstrap": [False],
-#               "n_estimators" :[100, 300, 500, 1000],
-#               "criterion": ["gini"]}
-#
-# ExtC = ExtraTreesClassifier(random_state=38)
-# gsExtC = GridSearchCV(ExtC,param_grid=ex_param_grid, cv=kfold, scoring="accuracy", n_jobs= 4, verbose = 1)
-# gsExtC.fit(train_x,train_y)
-# ExtC_best = gsExtC.best_estimator_
-# gsExtC.best_score_
-
-
-# rf_reg = RandomForestRegressor(n_estimators=1000, min_samples_leaf=9, min_samples_split=6, max_features=20)
-################## 3. Random Forest
-# max 34, mid47(96.56), min48(96.18)
-## Search grid for optimal parameters
-
-# # 결과
-# RandomForestClassifier(bootstrap=False, max_features=1, min_samples_leaf=2,
-#                        min_samples_split=7, n_estimators=500, random_state=47)
-# rf_param_grid = {"max_depth": [None],
-#               "max_features": range(10),
-#               "min_samples_split": range(10),
-#               "min_samples_leaf": range(10),
-#               "bootstrap": [False],
-#               "n_estimators" :[100,300, 500],
-#               "criterion": ["gini"]}
-#
-# RFC = RandomForestClassifier(random_state=47)
-# gsRFC = GridSearchCV(RFC,param_grid = rf_param_grid, cv=kfold, scoring="accuracy", n_jobs= 4, verbose = 1)
-# gsRFC.fit(train_x, train_y)
-# RFC_best = gsRFC.best_estimator_
-#
-# # Best score
-# gsRFC.best_score_
-
-##################################svc(95)
-# svc_param_grid = {'kernel': ['rbf'],
-#                   'gamma': [0.0001, 0.001, 0.01, 0.1, 0.2, 0.3],
-#                   'C': range(20,60)}
-#
-# # random state 상관없이 다 같음
-# SVMC = SVC(probability=True, random_state=0)
-# gsSVMC = GridSearchCV(SVMC,param_grid = svc_param_grid, cv=kfold, scoring="accuracy", n_jobs= 4, verbose = 1)
-# gsSVMC.fit(train_x,train_y)
-# SVMC_best = gsSVMC.best_estimator_
-# print(gsSVMC.best_score_)
-
-#############################################\
-
-# ada = AdaBoostClassifier(algorithm='SAMME',
-#                    base_estimator=DecisionTreeClassifier(random_state=7,
-#                                                          splitter='random'),
-#                    learning_rate=1e-05, n_estimators=1, random_state=99)
-
-# extc = ExtraTreesClassifier(max_features=1, min_samples_split=10, n_estimators=300,
-#                      random_state=38)
-
 extc = ExtraTreesClassifier(max_features=3, min_samples_split=6, random_state=42)
 rfc = RandomForestClassifier(bootstrap=False, max_features=1, min_samples_leaf=2,
                        min_samples_split=7, n_estimators=500, random_state=47)
@@ -174,8 +79,32 @@ gnb = GaussianNB(var_smoothing=0.12067926406393285)
 svc = SVC(C=23, gamma=0.01, probability=True, random_state=0)
 xgbc = xgb.XGBClassifier(objective='multi:softprob', random_state=10, var_smoothing=1.0)
 
+# randomforest 하이퍼파라미터 튜닝
+def RF_objective(trial):
+    max_depth = trial.suggest_int('max_depth', 1, 10)
+    max_leaf_nodes = trial.suggest_int('max_leaf_nodes', 2, 1000)
+    n_estimators = trial.suggest_int('n_estimators', 100, 500)
+    model = RandomForestClassifier(max_depth=max_depth, max_leaf_nodes=max_leaf_nodes, n_estimators=n_estimators,
+                                   n_jobs=2, random_state=42)
+    model.fit(train_x, train_y)
+
+    score = cross_val_score(model, train_x, train_y, cv=5, scoring=make_scorer(f1_score,average='micro'))
+    f1_mean = score.mean()
+    return f1_mean
+# Execute optuna and set hyperparameters
+sampler = TPESampler(seed=42)
+RF_study = optuna.create_study(direction='maximize', sampler=sampler)
+RF_study.optimize(RF_objective, n_trials=5000)
+print("Best Score:", RF_study.best_value)   
+print("Best trial:", RF_study.best_trial.params)
+
+# RandomForestClassifier(max_depth=5, max_leaf_nodes=786, n_estimators=180, random_state=42) #10번
+# RandomForestClassifier(max_depth=5, max_leaf_nodes=364, n_estimators=335, random_state=42) # 100번
+
+rfc = RandomForestClassifier(**RF_study.best_trial.params)
+
 # XGboost 하이퍼파라미터 튜닝
-def objective(trial):
+def xgb_objective(trial):
     X_train, X_valid, Y_train, Y_valid = train_test_split(train_x.astype(int), train_y.astype(int), test_size=0.2)
 
     dtrain = xgb.DMatrix(X_train, label=Y_train)
@@ -217,13 +146,20 @@ def objective(trial):
         param["rate_drop"] = trial.suggest_float("rate_drop", 1e-8, 1.0, log=True)
         param["skip_drop"] = trial.suggest_float("skip_drop", 1e-8, 1.0, log=True)
 
+    # acc 기준 학습
+    # fitted_model = xgb.train(param, dtrain)
+    # preds = fitted_model.predict(dtest)
+    # xgb_pred = np.rint(preds)
+    # accuracy = accuracy_score(Y_valid, xgb_pred)
+
+    # f1-score 기준 학습
     fitted_model = xgb.train(param, dtrain)
     preds = fitted_model.predict(dtest)
-    xgb_pred = np.rint(preds)
-    accuracy = accuracy_score(Y_valid, xgb_pred)
-    # logloss = log_loss(Y_valid, xgb_pred)
-    return accuracy
-    # return logloss
+    # xgb_pred = np.rint(preds)
+    f1 = f1_score(Y_valid, preds, average='micro')
+    # return accuracy
+    return f1
+
 
 sampler = TPESampler(seed=42)
 study = optuna.create_study(
@@ -232,7 +168,7 @@ study = optuna.create_study(
     # direction="minimize",
     sampler=sampler,
 )
-study.optimize(objective, n_trials=100)
+study.optimize(xgb_objective, n_trials=100)
 print("Best Score:", study.best_value)
 print("Best trial:", study.best_trial.params)
 
@@ -260,31 +196,40 @@ def objective(trial: Trial) -> float:
 
     X_train, X_valid, Y_train, Y_valid = train_test_split(train_x.astype(int), train_y.astype(int), test_size=0.2)
 
-    model = LGBMClassifier(**params_lgb)
+    model = LGBMClassifier(**params_lgb, random_state=42)
     model.fit(
         X_train,
         Y_train,
         eval_set=[(X_train, Y_train), (X_valid, Y_valid)],
-        early_stopping_rounds=100,
-        verbose=False,
+        early_stopping_rounds=100
     )
 
+    # log-score
     # lgb_pred = model.predict_proba(X_valid)
-    log_score = log_loss(Y_valid, lgb_pred)
-    accuracy = accuracy_score(Y_valid, lgb_pred)
-    return accuracy
+    # log_score = log_loss(Y_valid, lgb_pred)
+
+    # f1-score
+    score = cross_val_score(model, train_x.astype(int), train_y.astype(int), cv=5, scoring=make_scorer(f1_score, average='micro'))
+    f1_mean = score.mean()
+
+    # return log_score
+    return f1_mean
 
 sampler = TPESampler(seed=42)
 study = optuna.create_study(
     study_name="lgbm_parameter_opt",
-    direction="minimize",
-    # direction="maximize",
+    # direction="minimize",
+    direction="maximize",
     sampler=sampler,
 )
 study.optimize(objective, n_trials=100)
 print("Best Score:", study.best_value)
 print("Best trial:", study.best_trial.params)
 
+# LGBMClassifier(colsample_bytree=0.9427779694979184, max_bin=280, max_depth=8,
+#                min_child_samples=11, num_leaves=208,
+#                reg_alpha=2.6609721865173934e-05, reg_lambda=0.02820657881767179,
+#                subsample=0.4489768874984188, subsample_freq=3)
 lgbmc = LGBMClassifier(**study.best_trial.params)
 
 
@@ -309,10 +254,25 @@ votingC = VotingClassifier(estimators=[('lgbm', lgbmc), ('xgbc', xgbc), ('rfc', 
 votingC = VotingClassifier(estimators=[('lgbm', lgbmc), ('xgbc', xgbc), ('rfc', rfc), ('extc', extc), ('gnb', gnb)], voting='soft', n_jobs=4) #temp12 = 3개가 다르지만 점수는 같음
 votingC = VotingClassifier(estimators=[('lgbm', lgbmc), ('xgbc', xgbc), ('gnb', gnb)], voting='soft', n_jobs=4) #temp13
 votingC = VotingClassifier(estimators=[('lgbm', lgbmc), ('xgbc', xgbc), ('svc', svc)], voting='soft', n_jobs=4) #temp14
+votingC = VotingClassifier(estimators=[('temp', xgbc), ('rfc', rfc)], voting='soft', n_jobs=4) #temp15 0.9622
+votingC = VotingClassifier(estimators=[('temp', lgbmc), ('rfc', rfc)], voting='soft', n_jobs=4) #temp16_1(lgbm이전버전, rfc새버전) 0.9622 = 2(새버전, 새버전)
 
 
+# # 단일모델
+
+# rfc.fit(train_x, train_y)
+# pred = rfc.predict(test_df)
+
+# xgbc.fit(train_x.astype(int), train_y.astype(int))
+# pred = xgbc.predict(test_df.astype(int))
+#
+# lgbmc.fit(train_x.astype(int), train_y.astype(int))
+# pred = lgbmc.predict(test_df.astype(int))
+
+# 앙상블 모델
 votingC = votingC.fit(train_x.astype(int), train_y)
 pred = votingC.predict(test_df.astype(int))
+
 # label_dic = get_dict(list(set(train_df['class'])))
 label_rev_dic = {}
 for i, x in enumerate(label_dic):
@@ -323,15 +283,14 @@ for x in pred:
     result.append(label_rev_dic[x])
 
 temp = pd.read_csv('./test.csv')
-temp['id']
 
 result_df = pd.DataFrame(result, index=temp['id'], columns=['class'])
-result_df.to_csv("./model_result_temp14.csv")
+result_df.to_csv("./model_result_temp16_2.csv")
 
-
-temp1 = pd.read_csv("./model_result_temp13.csv")
-temp2 = pd.read_csv("./model_result_temp_max.csv")
-temp3 = pd.read_csv("./model_result_14.csv")
+# rfc(1개) > xgb(temp5와 비교 3개) > lgbm(4개)
+temp1 = pd.read_csv("./model_result_temp15.csv")
+temp2 = pd.read_csv("./model_result_temp42.csv")
+temp3 = pd.read_csv("./model_result_temp5.csv")
 #
 check_bool(temp1, temp2)
 check_bool(temp2, temp3)
