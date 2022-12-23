@@ -87,8 +87,8 @@ def RF_objective(trial):
     model = RandomForestClassifier(max_depth=max_depth, max_leaf_nodes=max_leaf_nodes, n_estimators=n_estimators,
                                    n_jobs=2, random_state=42)
     model.fit(train_x, train_y)
-
-    score = cross_val_score(model, train_x, train_y, cv=5, scoring=make_scorer(f1_score,average='micro'))
+    kfold = StratifiedKFold(n_splits=5)
+    score = cross_val_score(model, train_x, train_y, cv=kfold, scoring=make_scorer(f1_score,average='micro'))
     f1_mean = score.mean()
     return f1_mean
 # Execute optuna and set hyperparameters
@@ -101,11 +101,12 @@ print("Best trial:", RF_study.best_trial.params)
 # RandomForestClassifier(max_depth=5, max_leaf_nodes=786, n_estimators=180, random_state=42) #10번
 # RandomForestClassifier(max_depth=5, max_leaf_nodes=364, n_estimators=335, random_state=42) # 100번
 # rfc = RandomForestClassifier(max_depth=6, max_leaf_nodes=268, n_estimators=286, random_state=42) # 95.82
+# {'max_depth': 6, 'max_leaf_nodes': 157, 'n_estimators': 162} # 95.43
 rfc = RandomForestClassifier(**RF_study.best_trial.params)
 
 # XGboost 하이퍼파라미터 튜닝
 def xgb_objective(trial):
-    X_train, X_valid, Y_train, Y_valid = train_test_split(train_x.astype(int), train_y.astype(int), test_size=0.2)
+    X_train, X_valid, Y_train, Y_valid = train_test_split(train_x.astype(int), train_y.astype(int), test_size=0.2, random_state=42)
 
     dtrain = xgb.DMatrix(X_train, label=Y_train)
     dtest = xgb.DMatrix(X_valid, label=Y_valid)
@@ -206,7 +207,7 @@ def objective(trial: Trial) -> float:
         "max_bin": trial.suggest_int("max_bin", 200, 500),
     }
 
-    X_train, X_valid, Y_train, Y_valid = train_test_split(train_x.astype(int), train_y.astype(int), test_size=0.2)
+    X_train, X_valid, Y_train, Y_valid = train_test_split(train_x.astype(int), train_y.astype(int), test_size=0.2, random_state=42)
 
     model = LGBMClassifier(**params_lgb, random_state=42)
 
@@ -310,7 +311,7 @@ result_df.to_csv("./model_result_temp12_2.csv")
 
 # rfc(1개) > xgb(temp5와 비교 3개) > lgbm(4개)
 temp1 = pd.read_csv("./model_result_temp12_2.csv")
-temp2 = pd.read_csv("./model_result_temp3.csv")
+temp2 = pd.read_csv("./model_result_temp5.csv")
 temp3 = pd.read_csv("./model_result_14.csv")
 #
 check_bool(temp1, temp2)

@@ -66,7 +66,7 @@ train_x = train_df.drop('class', axis=1)
 
 
 # Cross validate model with Kfold stratified cross val
-kfold = StratifiedKFold(n_splits=10)
+kfold = StratifiedKFold(n_splits=10, random_state=42)
 
 # # Modeling step Test differents algorithms
 # random_state = 2
