@@ -18,11 +18,7 @@ from sklearn.svm import SVC
 from sklearn.model_selection import GridSearchCV, cross_val_score, StratifiedKFold, learning_curve
 from sklearn.naive_bayes import GaussianNB
 from sklearn.preprocessing import LabelEncoder
-
-
 import os
-
-
 import optuna
 from optuna import Trial
 from optuna.samplers import TPESampler
@@ -94,7 +90,7 @@ def RF_objective(trial):
 # Execute optuna and set hyperparameters
 sampler = TPESampler(seed=42)
 RF_study = optuna.create_study(direction='maximize', sampler=sampler)
-RF_study.optimize(RF_objective, n_trials=1000)
+RF_study.optimize(RF_objective, n_trials=100)
 print("Best Score:", RF_study.best_value)   
 print("Best trial:", RF_study.best_trial.params)
 
@@ -169,7 +165,7 @@ study = optuna.create_study(
     # direction="minimize",
     sampler=sampler,
 )
-study.optimize(xgb_objective, n_trials=1000)
+study.optimize(xgb_objective, n_trials=100)
 print("Best Score:", study.best_value)
 print("Best trial:", study.best_trial.params)
 
@@ -186,6 +182,9 @@ xgbc = xgb.XGBClassifier(**study.best_trial.params)
 #               min_child_weight=None, missing=nan, monotone_constraints=None,
 #               n_estimators=100, n_jobs=None, num_parallel_tree=None,
 #               objective='multi:softprob', predictor=None, ...)
+
+# parameter
+# {'booster': 'gblinear', 'lambda': 2.0098022467897378e-07, 'alpha': 4.851226874611273e-08, 'subsample': 0.26924344131903377, 'colsample_bytree': 0.39011154388183006}
 
 
 # Light gbm 하이퍼파라미터 튜닝
@@ -282,18 +281,19 @@ votingC = VotingClassifier(estimators=[('temp', lgbmc), ('rfc', rfc)], voting='s
 
 # # 단일모델
 
-# rfc.fit(train_x, train_y)
-# pred = rfc.predict(test_df)
+rfc.fit(train_x, train_y)
+pred = rfc.predict(test_df)
 
+# xgbc = xgb.XGBClassifier(**{'booster': 'gblinear', 'lambda': 2.0098022467897378e-07, 'alpha': 4.851226874611273e-08, 'subsample': 0.26924344131903377, 'colsample_bytree': 0.39011154388183006})
 # xgbc.fit(train_x.astype(int), train_y.astype(int))
 # pred = xgbc.predict(test_df.astype(int))
 #
-lgbmc.fit(train_x.astype(int), train_y.astype(int))
-pred = lgbmc.predict(test_df.astype(int))
+# lgbmc.fit(train_x.astype(int), train_y.astype(int))
+# pred = lgbmc.predict(test_df.astype(int))
 
 # 앙상블 모델
-votingC = votingC.fit(train_x.astype(int), train_y)
-pred = votingC.predict(test_df.astype(int))
+# votingC = votingC.fit(train_x.astype(int), train_y)
+# pred = votingC.predict(test_df.astype(int))
 
 # label_dic = get_dict(list(set(train_df['class'])))
 label_rev_dic = {}
@@ -307,40 +307,43 @@ for x in pred:
 temp = pd.read_csv('./test.csv')
 
 result_df = pd.DataFrame(result, index=temp['id'], columns=['class'])
-result_df.to_csv("./model_result_temp12_2.csv")
+result_df.to_csv("./result/model_result_temp_rfc2.csv")
 
 # rfc(1개) > xgb(temp5와 비교 3개) > lgbm(4개)
-temp1 = pd.read_csv("./model_result_temp12_2.csv")
-temp2 = pd.read_csv("./model_result_temp5.csv")
-temp3 = pd.read_csv("./model_result_14.csv")
+# rfc 4개, xgb 26개, lgbm, lgbm 4개
+temp1 = pd.read_csv("./result/model_result_temp_rfc2.csv")
+temp2 = pd.read_csv("./result/model_result_temp_rfc.csv")
+temp3 = pd.read_csv("./result/model_result_14.csv")
 #
 check_bool(temp1, temp2)
 check_bool(temp2, temp3)
 check_bool(temp1, temp3)
+
 
 """
 기록
 12월 22일 밤(집)
 model_resulttemp12 : 0.971919 == temp12_1
 votingC = VotingClassifier(estimators=[('lgbm', lgbmc), ('xgbc', xgbc), ('rfc', rfc), ('extc', extc), ('gnb', gnb)], voting='soft', n_jobs=4)
-1.LGBMClassifier(colsample_bytree=0.851261132978881, max_bin=446, max_depth=13,
+lgbmc = LGBMClassifier(colsample_bytree=0.851261132978881, max_bin=446, max_depth=13,
                min_child_samples=19, num_leaves=169,
                reg_alpha=2.2714647832604017e-06, reg_lambda=0.0671564944943035,
                subsample=0.6846758987443338, subsample_freq=9)
-2.XGBClassifier(base_score=0.5, booster='gbtree', callbacks=None,
+xgbc = xgb.XGBClassifier(base_score=0.5, booster='gbtree', callbacks=None,
               colsample_bylevel=1, colsample_bynode=1, colsample_bytree=1,
               early_stopping_rounds=None, enable_categorical=False,
-              eval_metric=None, feature_types=None, gamma=0, gpu_id=-1,
+              eval_metric=None, feature_types=None, gamma=0,
               grow_policy='depthwise', importance_type=None,
               interaction_constraints='', learning_rate=0.300000012,
               max_bin=256, max_cat_threshold=64, max_cat_to_onehot=4,
               max_delta_step=0, max_depth=6, max_leaves=0, min_child_weight=1,
-              missing=nan, monotone_constraints='()', n_estimators=100,
+               monotone_constraints='()', n_estimators=100,
               n_jobs=0, num_parallel_tree=1, objective='multi:softprob',
-              predictor='auto', ...)
-3. RandomForestClassifier(max_depth=6, max_leaf_nodes=268, n_estimators=286,
-                       random_state=42)
-4. ExtraTreesClassifier(max_features=3, min_samples_split=6, random_state=42)
-5. GaussianNB(var_smoothing=0.12067926406393285)
+              predictor='auto')
+rfc = RandomForestClassifier(max_depth=6, max_leaf_nodes=268, n_estimators=286,
+                       random_state=42) #rfc1=97.1917
+rfc = RandomForestClassifier(max_depth=5, max_leaf_nodes=364, n_estimators=335, random_state=42) # 100번 튜닝, rfc2 =              
+ExtraTreesClassifier(max_features=3, min_samples_split=6, random_state=42)
+GaussianNB(var_smoothing=0.12067926406393285)
 
 """
