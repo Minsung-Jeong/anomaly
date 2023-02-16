@@ -17,6 +17,7 @@ plt.show()
 
 # walkDistance, boosts, weaponsAcquired, kills
 corr_rank = train.corr()["winPlacePerc"].sort_values(ascending=False)
+print(corr_rank)
 
 # simple shot
 def simple_shot(var):
@@ -35,10 +36,11 @@ simple_shot('kills')
 # 킬과 승리의 상관관계(0.4199로 높지 않음)
 sns.jointplot(x="winPlacePerc", y="kills", data=train, height=10, ratio=3, color="r")
 plt.show()
-kill_win_corr = train[["winPlacePerc", "kills"]].corr()
+print(train[["winPlacePerc", "kills"]].corr())
 
 # 킬과 승리에 대한 scatter plot
 simple_shot('rankPoints')
+
 plt.hist(train['rankPoints'])
 plt.scatter(round(train['rankPoints'].median()), 1500000, c='red')
 plt.show()
@@ -61,10 +63,6 @@ def rank_split(var):
         elif crit4 < var[i]:
             temp.append(5)
     return temp
-
-
-abc = temp[4].copy()
-abc = abc[abc.values != 0]
 
 def split_corr(input_val):
     temp = input_val.stack()
@@ -101,14 +99,14 @@ temp.index = rank_kill_win.index
 
 
 # 팀킬에 대해 알아보자
-simple_shot('teamKills')
-# 팀킬러는 거의 없다(97.8퍼센트가 팀킬0)
-sns.displot(train['teamKills'])
-plt.show()
-
-# 팀킬 0, 보다 팀킬 한 사람 승률높음(innocent, troller의 데이터 불균형 심함 or bad guys are prone to survive)
-innocent = train[train['teamKills'] == 0]['winPlacePerc'].mean()
-troller = train[train['teamKills'] !=0]['winPlacePerc'].mean()
+# simple_shot('teamKills')
+# # 팀킬러는 거의 없다(97.8퍼센트가 팀킬0)
+# sns.displot(train['teamKills'])
+# plt.show()
+#
+# # 팀킬 0, 보다 팀킬 한 사람 승률높음(innocent, troller의 데이터 불균형 심함 or bad guys are prone to survive)
+# innocent = train[train['teamKills'] == 0]['winPlacePerc'].mean()
+# troller = train[train['teamKills'] !=0]['winPlacePerc'].mean()
 
 
 # ----------------------------walkDistance
@@ -137,8 +135,7 @@ train['walk_split'] = rank_split(train['walkDistance'])
 rank_walk_win = train[['winPlacePerc', 'walk_split', 'rankPoints_split']].groupby(['rankPoints_split', 'walk_split']).mean()
 ax = rank_walk_win.unstack(level=0).plot(kind='bar', subplots=True, rot=0, figsize=(9, 7), layout=(2, 3))
 plt.tight_layout()
-walk_kill_win_corr = split_corr(rank_walk_win) #많이 걷는 그룹에서 킬과 승리의 상관성이 낮게 나옴
-
+walk_kill_win_corr = split_corr(rank_walk_win) #모든 그룹에서 높게 나오는 상관성
 
 # 걷기 레벨 내에서 킬과 승리의 상관성
 walk_kill_win = train[['winPlacePerc', 'walk_split', 'kills']].groupby(['walk_split', 'kills']).mean()
@@ -148,10 +145,10 @@ walk_kill_win_corr = split_corr(walk_kill_win) #많이 걷는 그룹에서 킬�
 
 
 ## Hypothesis : 장거리 마라토너로 승리하는 사람은 솔로가 아닐 확률이 높다? - 장거리 마라토너는 무임승차자가 많다
-solos = train[train['numGroups']>50]
+solos = train[train['numGroups'] > 50]
 # duos = train[(train['numGroups']>25) & (train['numGroups']<=50)]
 # squads = train[train['numGroups']<=25]
-teamPlayers = train[train['numGroups'] <=50]
+teamPlayers = train[train['numGroups'] <= 50]
 
 # solo or not으로 나눈 뒤 walkDistance로 나눈 뒤 win과 상관성
 # 상관관계로만 봤을 때는 솔로나 팀이나 모두 walk - win 의 상관성 높음
@@ -168,17 +165,10 @@ team_walk_kill_win = teamPlayers[['walk_split', 'winPlacePerc', 'kills']].groupb
 sol_walk_kill_win_corr = split_corr(sol_walk_kill_win) #솔로 : 걷기 랭킹 내에서 킬과 승리의 상관성이 높음
 team_walk_kill_win_corr = split_corr(team_walk_kill_win) # 팀 : 걷기 랭킹 내에서 킬과 승리의 상관성이 낮음
 
-# -------------
-# temp = sol_walk_kill_win.stack()
-# temp.index = sol_walk_kill_win.index
-#
-# data = temp[1]
-# data = data[data.values!=0]
-# ----------------
 
 plt.title("solo vs team walk-kill-win correlation")
 plt.plot(range(0,5), sol_walk_kill_win_corr, label='solo')
-plt.plot(range(0,5), team_walk_kill_win_corr, label = 'team')
+plt.plot(range(0,5), team_walk_kill_win_corr, label='team')
 plt.legend()
 plt.show()
 
@@ -197,13 +187,16 @@ plt.show()
 sns.jointplot(x="winPlacePerc", y="boosts",  data=train, height=10, ratio=3, color="lime")
 plt.show()
 
-# 부스트와 다른 변수간의 관계(1.walk - 2.win - 3.heal)
-boost_corr = train.corr()["boosts"].sort_values(ascending=False)
+# # 부스트와 다른 변수간의 관계(1.walk - 2.win - 3.heal)
+# boost_corr = train.corr()["boosts"].sort_values(ascending=False)
+
+train['boosts_split'] = rank_split(train['boosts'])
+boost_win = train[['winPlacePerc', 'boosts_split']].groupby(['boosts_split']).mean()
+boost_win_corr = pd.DataFrame([np.arange(1,6), np.squeeze(boost_win.values)]).T.corr()[0][1]
+print('correlation between winPlacePerc and boosts_split :{:.3f}'.format(boost_win_corr, ))
 
 # 랭크레벨 당 부스트와 승리
 rank_boost_win = train[['winPlacePerc', 'rankPoints_split', 'boosts']].groupby(['rankPoints_split', 'boosts']).mean()
-
-
 ax = rank_boost_win.unstack(level=0).plot(kind='bar', subplots=True, rot=0, figsize=(9, 7), layout=(2, 3))
 plt.tight_layout()
 
