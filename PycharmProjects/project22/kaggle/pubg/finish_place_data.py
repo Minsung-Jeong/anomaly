@@ -11,8 +11,9 @@ train.isnull().sum()
 train.head()
 
 # 모든 변수들의 상관관계 살펴보기(상위 3개 변수에 대해서 분석 + 의외의 변수 1개(kills) => 4개의 변수 분석)
-f, ax = plt.subplots(figsize=(20,20))
-sns.heatmap(train.corr(), annot=True, linewidths=.5, fmt='.1f', ax=ax)
+f, ax = plt.subplots(figsize=(15,15))
+# sns.heatmap(train.corr(), annot=True, linewidths=.5, fmt='.1f', ax=ax)
+sns.heatmap(train.corr(), annot=True,fmt='.1f',  ax=ax)
 plt.show()
 
 # walkDistance, boosts, weaponsAcquired, kills
@@ -205,7 +206,89 @@ rank_boost_win = split_corr(rank_boost_win)
 
 
 
+# -------------------------헬퍼 찾기-------------
+# 승리와 상관관게 높은 것 = 걸은 거리, 부스트
+# 킬과 상관성 높은 것 = (데미지 제외, 기절 관련) 부스트, (승리), 걸은 거리
+def rank_10split(var):
+    temp = []
+    crit1 = var.quantile(0.1)
+    crit2 = var.quantile(0.2)
+    crit3 = var.quantile(0.3)
+    crit4 = var.quantile(0.4)
+    crit5 = var.quantile(0.5)
+    crit6 = var.quantile(0.6)
+    crit7 = var.quantile(0.7)
+    crit8 = var.quantile(0.8)
+    crit9 = var.quantile(0.9)
+
+    for i in range(len(train)):
+        if var[i] <= crit1:
+            temp.append(1)
+        elif crit1 < var[i] <= crit2:
+            temp.append(2)
+        elif crit2 < var[i] <= crit3:
+            temp.append(3)
+        elif crit3 < var[i] <= crit4:
+            temp.append(4)
+        elif crit4 < var[i] <= crit5:
+            temp.append(5)
+        elif crit5 < var[i] <= crit6:
+            temp.append(6)
+        elif crit6 < var[i] <= crit7:
+            temp.append(7)
+        elif crit7 < var[i] <= crit8:
+            temp.append(8)
+        elif crit8 < var[i] <= crit9:
+            temp.append(9)
+        elif crit9 < var[i]:
+            temp.append(10)
+    return temp
+
+corr_rank_with_win = corr_rank
+corr_rank_with_kill = train.corr()["kills"].sort_values(ascending=False)
+
+train.columns
+kill_related = train[['Id', 'kills', 'boosts', 'walkDistance', 'heals']]
 
 
-# ------마지막
-# 의문 heals은 0.4, boosts 는 0.6 Why?
+train['walkDistance_split'] = rank_split(train['walkDistance'])
+train['boosts_split'] = rank_split(train['boosts'])
+train['heals_split'] = rank_split(train['heals'])
+train['longestKill_split'] = rank_split(train['longestKill'])
+train_sorted = train.sort_values(by='kills', ascending=False)
+
+
+kill_related['walkDistance_split'] = rank_split(kill_related['walkDistance'])
+kill_related['boosts_split'] = rank_split(kill_related['boosts'])
+kill_related['heals_split'] = rank_split(kill_related['heals'])
+
+kill_re_sorted = kill_related.sort_values(by='kills', ascending=False)
+
+
+# 부스트, 걷기 하위 10%에 속하면서 킬 상위 1% 인 사용자 수 919명
+simple_shot('kills')
+train[(train['walkDistance_split'] ==1) & (train['boosts_split'] == 1) & (train['kills'] >= 7)]
+
+# 힐, 걷기 하위 10%에 속하면서 킬 상위 1%인 사용자 수 354명
+simple_shot('kills')
+train[(train['walkDistance_split'] == 1) & (train['heals_split'] == 1) & (train['kills'] >= 7)]
+
+# 헤드샷/킬 비율 상위 10%(확률 100%) + 킬 상위 1%(7킬이상) : 105명
+train['headshot_rate'] = train['headshotKills'] / train['kills']
+print(train[(train['headshot_rate'] >= train['headshot_rate'].quantile(0.9)) & (train['kills']>=7)])
+
+
+# longest kill 에 헤드샷 비율 상위 10%
+# data = train.copy()
+# data = data[(data['longestKill'] < train['longestKill'].quantile(0.99)) & (data['longestKill'] > 0)]
+# sns.displot(data['longestKill'])
+# plt.show()
+
+print(train['longestKill'].quantile(0.99))
+# 최고거리 상위 1프로, 헤드샷확률 100%, 2킬이상 - 371명
+train[(train['longestKill'] > train['longestKill'].quantile(0.99))
+      & (train['headshot_rate'] >= train['headshot_rate'].quantile(0.9))
+      & (train['kills'] > 2)
+]
+
+
