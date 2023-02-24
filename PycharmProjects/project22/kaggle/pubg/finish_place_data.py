@@ -247,30 +247,29 @@ def rank_10split(var):
 corr_rank_with_win = corr_rank
 corr_rank_with_kill = train.corr()["kills"].sort_values(ascending=False)
 
-train.columns
-kill_related = train[['Id', 'kills', 'boosts', 'walkDistance', 'heals']]
 
 
-train['walkDistance_split'] = rank_split(train['walkDistance'])
-train['boosts_split'] = rank_split(train['boosts'])
-train['heals_split'] = rank_split(train['heals'])
-train['longestKill_split'] = rank_split(train['longestKill'])
+train['walkDistance_split'] = rank_10split(train['walkDistance'])
+train['boosts_split'] = rank_10split(train['boosts'])
+train['heals_split'] = rank_10split(train['heals'])
+train['longestKill_split'] = rank_10split(train['longestKill'])
 train_sorted = train.sort_values(by='kills', ascending=False)
 
+# kill_related = train[['Id', 'kills', 'boosts', 'walkDistance', 'heals']]
+# kill_related['walkDistance_split'] = rank_split(kill_related['walkDistance'])
+# kill_related['boosts_split'] = rank_split(kill_related['boosts'])
+# kill_related['heals_split'] = rank_split(kill_related['heals'])
+#
+# kill_re_sorted = kill_related.sort_values(by='kills', ascending=False)
+train.columns
 
-kill_related['walkDistance_split'] = rank_split(kill_related['walkDistance'])
-kill_related['boosts_split'] = rank_split(kill_related['boosts'])
-kill_related['heals_split'] = rank_split(kill_related['heals'])
+train = train.drop(['maxPlace','Unnamed: 0','groupId','Id', 'matchId','assists','roadKills', 'vehicleDestroys', 'rideDistance', 'swimDistance'], axis=1)
+# 부스트, 걷기 하위 10%에 속하면서 킬 상위 1% 인 사용자 수 582명
 
-kill_re_sorted = kill_related.sort_values(by='kills', ascending=False)
-
-
-# 부스트, 걷기 하위 10%에 속하면서 킬 상위 1% 인 사용자 수 919명
 simple_shot('kills')
-train[(train['walkDistance_split'] ==1) & (train['boosts_split'] == 1) & (train['kills'] >= 7)]
+print(train[(train['walkDistance_split'] ==1) & (train['boosts_split'] == 1) & (train['kills'] >= 7)])
 
-# 힐, 걷기 하위 10%에 속하면서 킬 상위 1%인 사용자 수 354명
-simple_shot('kills')
+# 힐, 걷기 하위 10%에 속하면서 킬 상위 1%인 사용자 수 218명
 train[(train['walkDistance_split'] == 1) & (train['heals_split'] == 1) & (train['kills'] >= 7)]
 
 # 헤드샷/킬 비율 상위 10%(확률 100%) + 킬 상위 1%(7킬이상) : 105명
@@ -285,8 +284,8 @@ print(train[(train['headshot_rate'] >= train['headshot_rate'].quantile(0.9)) & (
 # plt.show()
 
 print(train['longestKill'].quantile(0.99))
-# 최고거리 상위 1프로, 헤드샷확률 100%, 2킬이상 - 371명
-train[(train['longestKill'] > train['longestKill'].quantile(0.99))
+# 최고거리 상위 1프로, 헤드샷확률 100%, 2킬이상 - 16명
+train[(train['longestKill'] > 800)
       & (train['headshot_rate'] >= train['headshot_rate'].quantile(0.9))
       & (train['kills'] > 2)
 ]
