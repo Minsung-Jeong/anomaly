@@ -10,15 +10,15 @@ train.info()
 train.isnull().sum()
 train.head()
 
-# 모든 변수들의 상관관계 살펴보기(상위 3개 변수에 대해서 분석 + 의외의 변수 1개(kills) => 4개의 변수 분석)
-f, ax = plt.subplots(figsize=(15,15))
-# sns.heatmap(train.corr(), annot=True, linewidths=.5, fmt='.1f', ax=ax)
-sns.heatmap(train.corr(), annot=True,fmt='.1f',  ax=ax)
-plt.show()
+# # 모든 변수들의 상관관계 살펴보기(상위 3개 변수에 대해서 분석 + 의외의 변수 1개(kills) => 4개의 변수 분석)
+# f, ax = plt.subplots(figsize=(15,15))
+# # sns.heatmap(train.corr(), annot=True, linewidths=.5, fmt='.1f', ax=ax)
+# sns.heatmap(train.corr(), annot=True,fmt='.1f',  ax=ax)
+# plt.show()
 
 # walkDistance, boosts, weaponsAcquired, kills
-corr_rank = train.corr()["winPlacePerc"].sort_values(ascending=False)
-print(corr_rank)
+# corr_rank = train.corr()["winPlacePerc"].sort_values(ascending=False)
+# print(corr_rank)
 
 # simple shot
 def simple_shot(var):
@@ -244,8 +244,8 @@ def rank_10split(var):
             temp.append(10)
     return temp
 
-corr_rank_with_win = corr_rank
-corr_rank_with_kill = train.corr()["kills"].sort_values(ascending=False)
+# corr_rank_with_win = corr_rank
+# corr_rank_with_kill = train.corr()["kills"].sort_values(ascending=False)
 
 
 
@@ -265,10 +265,14 @@ train.columns
 
 train = train.drop(['maxPlace','Unnamed: 0','groupId','Id', 'matchId','assists','roadKills', 'vehicleDestroys', 'rideDistance', 'swimDistance'], axis=1)
 # 부스트, 걷기 하위 10%에 속하면서 킬 상위 1% 인 사용자 수 582명
-
 simple_shot('kills')
 print(train[(train['walkDistance_split'] ==1) & (train['boosts_split'] == 1) & (train['kills'] >= 7)])
+no1 = train[(train['walkDistance_split'] ==1) & (train['boosts_split'] == 1) & (train['kills'] >= 7)]
+no1['longestKill_split'].mean()
+no1['winPlacePerc'].mean()
 
+temp = no1.sort_values(by='longestKill', ascending=False)
+temp['longestKill']
 # 힐, 걷기 하위 10%에 속하면서 킬 상위 1%인 사용자 수 218명
 train[(train['walkDistance_split'] == 1) & (train['heals_split'] == 1) & (train['kills'] >= 7)]
 
