@@ -12,16 +12,10 @@ from sklearn.preprocessing import StandardScaler
 from sklearn.cluster import KMeans
 
 df = pd.read_excel("C://data_minsung/kaggle/online_retail/Online Retail.xlsx")
-
 df = df.dropna(subset=["CustomerID"])
-
-df.isnull().sum()
-df.describe()
-
-df['Quantity'].head()
-len(df)
 df = df[(df['Quantity']>0) & (df['UnitPrice']>0)]
-len(df)
+
+
 
 # cohort analysis
 def get_month(x):
@@ -31,17 +25,22 @@ def get_month(x):
 df['InvoiceMonth'] = df['InvoiceDate'].apply(get_month)
 grouping = df.groupby('CustomerID')['InvoiceMonth']
 df['CohortMonth'] = grouping.transform('min')
-df.tail()
 
 
-def get_month_int (dframe,column):
+# # transform 사용한 이유 tmp1_1 = tmp2
+# tmp1 = df.groupby('CustomerID')['InvoiceMonth'].min().rename("min").reset_index()
+# tmp1_1 = df.merge(tmp1)['min']
+# tmp2 = df.groupby('CustomerID')['InvoiceMonth'].transform('min')
+
+
+def get_month_int(dframe, column):
     year = dframe[column].dt.year
     month = dframe[column].dt.month
     day = dframe[column].dt.day
     return year, month , day
 
-invoice_year,invoice_month,_ = get_month_int(df,'InvoiceMonth')
-cohort_year,cohort_month,_ = get_month_int(df,'CohortMonth')
+invoice_year, invoice_month,_ = get_month_int(df,'InvoiceMonth')
+cohort_year, cohort_month,_ = get_month_int(df,'CohortMonth')
 
 year_diff = invoice_year - cohort_year
 month_diff = invoice_month - cohort_month
@@ -50,10 +49,75 @@ month_diff = invoice_month - cohort_month
 df['CohortIndex'] = year_diff * 12 + month_diff + 1
 
 
-#Count monthly active customers from each cohort
+#Count monthly active customers from each cohort(여기서 col 'CustomerID'의 값은 고객수)
 grouping = df.groupby(['CohortMonth', 'CohortIndex'])
 cohort_data = grouping['CustomerID'].apply(pd.Series.nunique)
+
 # Return number of unique elements in the object.
 cohort_data = cohort_data.reset_index()
+# pivot은 주어진 index, columns으로 df를 reshape 해주는 것
 cohort_counts = cohort_data.pivot(index='CohortMonth',columns='CohortIndex',values='CustomerID')
-cohort_counts
+
+# Retention table
+cohort_size = cohort_counts.iloc[:,0]
+retention = cohort_counts.divide(cohort_size,axis=0) #axis=0 to ensure the divide along the row axis
+retention.round(3) * 100 #to show the number as percentage
+
+#Build the heatmap
+plt.figure(figsize=(15, 8))
+plt.title('Retention rates')
+sns.heatmap(data=retention,annot = True,fmt = '.0%',vmin = 0.0,vmax = 0.5,cmap="BuPu_r")
+plt.show()
+
+#Average quantity for each cohort
+grouping = df.groupby(['CohortMonth', 'CohortIndex'])
+cohort_data = grouping['Quantity'].mean()
+cohort_data = cohort_data.reset_index()
+average_quantity = cohort_data.pivot(index='CohortMonth',columns='CohortIndex',values='Quantity')
+average_quantity.round(1)
+average_quantity.index = average_quantity.index.date
+
+#Build the heatmap
+plt.figure(figsize=(15, 8))
+plt.title('Average quantity for each cohort')
+sns.heatmap(data=average_quantity,annot = True,vmin = 0.0, vmax =20, cmap="BuGn_r")
+plt.show()
+
+"""
+# Recency, Frequency, Monetary Value Calculation(RFM)
+# recency : 고객의 마지막 구매 , frequency : 일정기간 구매횟수, monetary : 고객이 지불한 금액
+
+# Process of calculating percentiles:
+    # Sort customers based on that metric
+    # Break customers into a pre-defined number of groups of equal size
+    # Assign a label to each group
+"""
+
+# New Total Sum Column
+df['TotalSum'] = df['UnitPrice'] * df['Quantity']
+
+# Data preparation steps
+print('Min Invoice Date:',df.InvoiceDate.dt.date.min(),'max Invoice Date:',
+       df.InvoiceDate.dt.date.max())
+
+df.head(3)
+
+snapshot_date = df['InvoiceDate'].max() + dt.timedelta(days=1)
+snapshot_date
+
+"""
+#The last day of purchase in total is 09 DEC, 2011. To calculate the day periods, 
+#let's set one day after the last one,or 
+#10 DEC as a snapshot_date. We will found the diff days with snapshot_date.
+"""
+# Calculate RFM metrics
+rfm = df.groupby(['CustomerID']).agg({'InvoiceDate': lambda x : (snapshot_date - x.max()).days,
+                                      'InvoiceNo':'count','TotalSum': 'sum'})
+#Function Lambdea: it gives the number of days between hypothetical today and the last transaction
+
+#Rename columns
+rfm.rename(columns={'InvoiceDate':'Recency','InvoiceNo':'Frequency','TotalSum':'MonetaryValue'}
+           ,inplace= True)
+
+#Final RFM values
+rfm.head()
