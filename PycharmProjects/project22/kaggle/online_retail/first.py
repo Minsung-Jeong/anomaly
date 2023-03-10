@@ -2,8 +2,6 @@
 import numpy as np # linear algebra
 import pandas as pd # data processing, CSV file I/O (e.g. pd.read_csv)
 import datetime as dt
-
-#For Data  Visualization
 import matplotlib.pyplot as plt
 import seaborn as sns
 
@@ -24,13 +22,15 @@ def get_month(x):
 # invoiceMonth 그냥 구매일, cohorMonth 최초 구매일
 df['InvoiceMonth'] = df['InvoiceDate'].apply(get_month)
 grouping = df.groupby('CustomerID')['InvoiceMonth']
+# transform은 row의 원형유지 - sql의 window function 느낌
 df['CohortMonth'] = grouping.transform('min')
 
-
-# # transform 사용한 이유 tmp1_1 = tmp2
-# tmp1 = df.groupby('CustomerID')['InvoiceMonth'].min().rename("min").reset_index()
-# tmp1_1 = df.merge(tmp1)['min']
-# tmp2 = df.groupby('CustomerID')['InvoiceMonth'].transform('min')
+# temp = pd.DataFrame(np.array([[0, 1, 1, 10], [1, 1, 0, 11], [2, 2, 3, 40],[2, 1, 3, 10]]), columns=['a', 'b', 'c', 'd'])
+# temp.set_index(keys='a', inplace=True)
+# temp.apply(lambda x : np.min(x))
+#
+# temp.groupby('a').mean()
+# temp.groupby('a').transform('mean')
 
 
 def get_month_int(dframe, column):
@@ -45,9 +45,8 @@ cohort_year, cohort_month,_ = get_month_int(df,'CohortMonth')
 year_diff = invoice_year - cohort_year
 month_diff = invoice_month - cohort_month
 
-# cohortIndex = (구매일 - 첫구매) + 1
+# cohortIndex = (구매일 - 첫구매일) + 1
 df['CohortIndex'] = year_diff * 12 + month_diff + 1
-
 
 #Count monthly active customers from each cohort(여기서 col 'CustomerID'의 값은 고객수)
 grouping = df.groupby(['CohortMonth', 'CohortIndex'])
@@ -55,6 +54,7 @@ cohort_data = grouping['CustomerID'].apply(pd.Series.nunique)
 
 # Return number of unique elements in the object.
 cohort_data = cohort_data.reset_index()
+
 # pivot은 주어진 index, columns으로 df를 reshape 해주는 것
 cohort_counts = cohort_data.pivot(index='CohortMonth',columns='CohortIndex',values='CustomerID')
 
@@ -120,4 +120,21 @@ rfm.rename(columns={'InvoiceDate':'Recency','InvoiceNo':'Frequency','TotalSum':'
            ,inplace= True)
 
 #Final RFM values
+rfm.head()
+
+
+#Building RFM segments
+r_labels =range(4,0,-1)
+f_labels=range(1,5)
+m_labels=range(1,5)
+r_quartiles = pd.qcut(rfm['Recency'], q=4, labels = r_labels)
+f_quartiles = pd.qcut(rfm['Frequency'],q=4, labels = f_labels)
+m_quartiles = pd.qcut(rfm['MonetaryValue'],q=4,labels = m_labels)
+rfm = rfm.assign(R=r_quartiles,F=f_quartiles,M=m_quartiles)
+
+# Build RFM Segment and RFM Score
+def add_rfm(x) : return str(x['R']) + str(x['F']) + str(x['M'])
+rfm['RFM_Segment'] = rfm.apply(add_rfm,axis=1 )
+rfm['RFM_Score'] = rfm[['R','F','M']].sum(axis=1)
+
 rfm.head()
