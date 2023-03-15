@@ -1,6 +1,6 @@
 # import library
-import numpy as np # linear algebra
-import pandas as pd # data processing, CSV file I/O (e.g. pd.read_csv)
+import numpy as np
+import pandas as pd
 import datetime as dt
 import matplotlib.pyplot as plt
 import seaborn as sns
@@ -9,7 +9,9 @@ import seaborn as sns
 from sklearn.preprocessing import StandardScaler
 from sklearn.cluster import KMeans
 
-df = pd.read_excel("C://data_minsung/kaggle/online_retail/Online Retail.xlsx")
+# df = pd.read_excel("C://data_minsung/kaggle/online_retail/Online Retail.xlsx")
+df = pd.read_csv("C://data_minsung/kaggle/online_retail/Online Retail.csv")
+
 df = df.dropna(subset=["CustomerID"])
 df = df[(df['Quantity']>0) & (df['UnitPrice']>0)]
 
