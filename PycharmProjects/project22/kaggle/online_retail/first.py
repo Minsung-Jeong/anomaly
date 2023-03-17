@@ -27,13 +27,6 @@ grouping = df.groupby('CustomerID')['InvoiceMonth']
 # transform은 row의 원형유지 - sql의 window function 느낌
 df['CohortMonth'] = grouping.transform('min')
 
-# temp = pd.DataFrame(np.array([[0, 1, 1, 10], [1, 1, 0, 11], [2, 2, 3, 40],[2, 1, 3, 10]]), columns=['a', 'b', 'c', 'd'])
-# temp.set_index(keys='a', inplace=True)
-# temp.apply(lambda x : np.min(x))
-#
-# temp.groupby('a').mean()
-# temp.groupby('a').transform('mean')
-
 
 def get_month_int(dframe, column):
     year = dframe[column].dt.year
