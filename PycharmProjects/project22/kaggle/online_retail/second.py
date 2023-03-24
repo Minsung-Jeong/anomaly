@@ -171,33 +171,3 @@ cltv_final.sort_values(by="RFM_Score", ascending=False).iloc[:10][['CustomerID',
 cltv_final.sort_values(by="clv", ascending=False).iloc[:10][['CustomerID', 'clv', 'RFM_Score']]
 
 
-# ------------temp
-# 버블
-array = [4,7,3,5,1]
-
-for i in range(len(array)):
-    for j in range(len(array)-i-1):
-        if array[j] > array[j+1]:
-            temp = array[j]
-            array[j], array[j+1] = array[j+1], array[j]
-
-array
-
-# 선택정렬
-# 배열 중에서 최소값 찾아서 걔를 맨 앞과 교체하고 그 뒤부터 또다시 최솟값 찾기
-
-array = [4,7,3,5,1]
-for i in range(len(array)):
-    min_index = i
-    for j in range(i+1, len(array)):
-        if array[j] < array[min_index]:
-            min_index = j
-    array[i], array[min_index] = array[min_index], array[i]
-
-
-array = [8, 5, 6, 2, 4]
-
-for i in range(1, len(array)):
-    for j in range(i):
-        if array[i] < array[j]:
-            array[i], array[j] = array[j], array[i]
