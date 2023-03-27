@@ -34,6 +34,7 @@ df['InvoiceMonth'] = df['InvoiceDate'].apply(get_month)
 grouping = df.groupby('CustomerID')['InvoiceMonth']
 df['startMonth'] = grouping.transform('min')
 
+
 def get_date_value(df, col):
     year = df[col].dt.year
     month = df[col].dt.month
