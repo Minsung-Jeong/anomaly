@@ -23,6 +23,7 @@ df['InvoiceDate'] = pd.to_datetime(df['InvoiceDate'])
 df['InvoiceMonth'] = df['InvoiceDate'].apply(lambda x: dt.datetime(x.year, x.month,1))
 df['startMonth'] = df.groupby('CustomerID')['InvoiceMonth'].transform('min')
 
+
 def get_date_value(df, col):
     year = df[col].dt.year
     month = df[col].dt.month
@@ -45,8 +46,16 @@ plt.figure(figsize=(15,8))
 
 
 # 데이터의 추이 및 관계
+df.columns
+len(df)
+temp = df.groupby(['InvoiceMonth', 'CustomerID'])['Quantity'].mean()
+# 에러나오는부분
+temp = temp.assign(UnitPrice=df.groupby(['InvoiceMonth', 'CustomerID'])['UnitPrice'].mean())
+temp = temp.reset_index()
+
+temp = df.groupby([])
 
 df.columns
-quantity = df.groupby('CustomerID')['Quantity'].mean()
-country = df.groupby('CustomerID')['Country'].min()
+# quantity = df.groupby('CustomerID')['Quantity'].mean()
+# country = df.groupby('CustomerID')['Country'].min()
 
