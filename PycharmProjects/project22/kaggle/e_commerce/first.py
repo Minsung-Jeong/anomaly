@@ -28,8 +28,8 @@ df['InvoiceMonth'] = df['InvoiceDate'].apply(lambda x: dt.datetime(x.year, x.mon
 # unit price must be low in september
 # I can't jump to conclusion because there is only one year of observations.
 df['SalesTotal'] = df['Quantity'] * df['UnitPrice']
-temp = df.groupby(['InvoiceMonth'])['Quantity','UnitPrice','SalesTotal'].mean()
-month_sales = temp.set_index('InvoiceMonth')
+month_sales = df.groupby(['InvoiceMonth'])['Quantity','UnitPrice','SalesTotal'].mean()
+# month_sales = temp.set_index('InvoiceMonth')
 month_sales.plot( subplots=True, rot=0, figsize=(9, 7), layout=(1, 3))
 plt.tight_layout()
 plt.show()
@@ -55,6 +55,7 @@ denorm = cohort_table.iloc[:,0]
 retention_table = cohort_table.divide(denorm, axis=0)
 
 # handle startMonth to get rid of hours on sns.heatmap
+retention_table = retention_table.reset_index()
 retention_table.startMonth = pd.to_datetime(retention_table.startMonth)
 retention_table.startMonth = retention_table.startMonth.dt.date
 retention_table = retention_table.set_index('startMonth')
