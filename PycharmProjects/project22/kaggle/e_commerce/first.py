@@ -1,13 +1,12 @@
-# import library
-import numpy as np
+
 import pandas as pd
 import datetime as dt
 import matplotlib.pyplot as plt
 import seaborn as sns
-from lifetimes import BetaGeoFitter
-from lifetimes import GammaGammaFitter
-from lifetimes.plotting import plot_period_transactions
-from sklearn.preprocessing import MinMaxScaler
+
+from sklearn.preprocessing import StandardScaler
+from sklearn.cluster import KMeans
+
 
 df = pd.read_csv("C://data_minsung/kaggle/e_commerce/data.csv",encoding="ISO-8859-1",
                          dtype={'CustomerID': str,'InvoiceID': str})
@@ -66,7 +65,6 @@ plt.title('User Cohort')
 ax = sns.heatmap(data=retention_table, annot=True, fmt = '.0%',vmin = 0.1,vmax = .8,cmap="BuPu_r")
 plt.show()
 
-
 # make cohort of quantity
 cohort_quantity_data = df_groupby['Quantity'].mean()
 cohort_data_quantity = cohort_quantity_data.reset_index()
@@ -110,11 +108,99 @@ rfm['RFM_Segment'] = rfm.apply(lambda x:str(int(x['R']))+str(int(x['F']))+str(in
 rfm['RFM_Score'] = rfm[['R','F','M']].sum(axis=1)
 # 3<= x <5, 5<= x < 7, 7<=x<10, 10<=x<12, x=12
 rfm.RFM_Score.describe(percentiles=[0.25,0.5,0.75,0.9,0.95,0.99])
-
+# 4-high, 0-low
 rfm['customer_type'] = pd.cut(rfm['RFM_Score'],
                               bins=[0,3,5,7,10,12],
-                              labels=['Iron','Bronze','Silver','Gold','Platinum'])
+                              labels=[0,1,2,3,4])
 
 
 # 클러스터링 정독
 # https://www.kaggle.com/code/mittalvasu95/cohort-rfm-k-means#III.-k-Means-Clustering
+
+# copying the data into new variable
+df_kmeans = rfm.copy()
+
+
+# # taking only relevant columns
+# df_kmeans = df_kmeans.iloc[:,:3]
+df_kmeans = df_kmeans.reset_index()
+
+
+# Removing outliers for Monetary
+Q1 = df_kmeans.Monetary.quantile(0.05)
+Q3 = df_kmeans.Monetary.quantile(0.95)
+IQR = Q3 - Q1
+df_kmeans = df_kmeans[(df_kmeans.Monetary >= Q1 - 1.5*IQR) & (df_kmeans.Monetary <= Q3 + 1.5*IQR)]
+
+# Removing outliers for Recency
+Q1 = df_kmeans.Recency.quantile(0.05)
+Q3 = df_kmeans.Recency.quantile(0.95)
+IQR = Q3 - Q1
+df_kmeans = df_kmeans[(df_kmeans.Recency >= Q1 - 1.5*IQR) & (df_kmeans.Recency <= Q3 + 1.5*IQR)]
+
+# Removing outliers for Frequency
+Q1 = df_kmeans.Frequency.quantile(0.05)
+Q3 = df_kmeans.Frequency.quantile(0.95)
+IQR = Q3 - Q1
+df_kmeans = df_kmeans[(df_kmeans.Frequency >= Q1 - 1.5*IQR) & (df_kmeans.Frequency <= Q3 + 1.5*IQR)]
+
+
+# data plot after outlier removing
+plt.figure(figsize=(15,5))
+plt.subplot(1,3,1)
+plt.scatter(df_kmeans.Recency, df_kmeans.Frequency, color='grey', alpha=0.3)
+plt.title('x:Recency, y:Frequency', size=15)
+plt.subplot(1,3,2)
+plt.scatter(df_kmeans.Monetary, df_kmeans.Frequency, color='grey', alpha=0.3)
+plt.title('x:Monetary, y:Frequency', size=15)
+plt.subplot(1,3,3)
+plt.scatter(df_kmeans.Recency, df_kmeans.Monetary, color='grey', alpha=0.3)
+plt.title('x:Recency, y:Monetary', size=15)
+plt.show()
+
+# correlation : Monetary, Frequency have high correlation value
+import scipy.stats as stats
+stats.pearsonr(df_kmeans.Monetary, df_kmeans.Frequency)
+stats.pearsonr(df_kmeans.Recency, df_kmeans.Frequency)
+stats.pearsonr(df_kmeans.Recency, df_kmeans.Monetary)
+
+# removing customer id as it will not used in making cluster
+df_kmeans_id = df_kmeans.iloc[:,0]
+df_rfm_clustered = df_kmeans.customer_type
+df_kmeans = df_kmeans.iloc[:,1:4]
+
+# scaling the variables and store it in different df
+standard_scaler = StandardScaler()
+df_kmeans_norm = standard_scaler.fit_transform(df_kmeans)
+
+# converting it into dataframe
+df_kmeans_norm = pd.DataFrame(df_kmeans_norm)
+df_kmeans_norm.columns = ['recency','frequency','monetary']
+df_kmeans_norm.head()
+
+clustered = KMeans(n_clusters = 5)
+clustered.fit(df_kmeans_norm)
+
+df_kmeans['kmeans_clusters'] = clustered.labels_
+df_kmeans.head()
+
+df_kmeans['rfm_clustered'] = df_rfm_clustered
+
+# rfm 과 k-means clustering 의 상관성은 거의 없음
+stats.pearsonr(df_kmeans.rfm_clustered, df_kmeans.kmeans_clusters)
+
+
+
+# k-means clustering 도 recency 보다는 freq, monetary 와 더 긴밀한 관계를 맺고 있음
+column = ['Recency','Frequency','Monetary']
+plt.figure(figsize=(15,4))
+for i,j in enumerate(column):
+    plt.subplot(1,3,i+1)
+    sns.boxplot(y=df_kmeans[j], x=df_kmeans['clusters'], palette='spring')
+    plt.title('{} wrt clusters'.format(j.upper()), size=13)
+    plt.ylabel('')
+    plt.xlabel('')
+plt.show()
+
+
+# to-do cltv prediction 진행한 후 r/f/m 과의 관계성 살피기
