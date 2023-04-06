@@ -196,7 +196,7 @@ column = ['Recency','Frequency','Monetary']
 plt.figure(figsize=(15,4))
 for i,j in enumerate(column):
     plt.subplot(1,3,i+1)
-    sns.boxplot(y=df_kmeans[j], x=df_kmeans['clusters'], palette='spring')
+    sns.boxplot(y=df_kmeans[j], x=df_kmeans['kmeans_clusters'], palette='spring')
     plt.title('{} wrt clusters'.format(j.upper()), size=13)
     plt.ylabel('')
     plt.xlabel('')
