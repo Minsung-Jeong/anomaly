@@ -7,6 +7,10 @@ import seaborn as sns
 from sklearn.preprocessing import StandardScaler
 from sklearn.cluster import KMeans
 
+from lifetimes import BetaGeoFitter
+from lifetimes import GammaGammaFitter
+from lifetimes.plotting import plot_period_transactions
+from sklearn.preprocessing import MinMaxScaler
 
 df = pd.read_csv("C://data_minsung/kaggle/e_commerce/data.csv",encoding="ISO-8859-1",
                          dtype={'CustomerID': str,'InvoiceID': str})
@@ -88,7 +92,11 @@ rfm = df.groupby(['CustomerID']).agg({
     'InvoiceNo' : 'count',
     'SalesTotal' : 'sum'
 })
+
+
 rfm = rfm.rename(columns={'InvoiceDate':'Recency','InvoiceNo':'Frequency','SalesTotal':'Monetary'})
+
+rfm = rfm[rfm.Monetary > 0]
 
 T = (pin_date - df.groupby(['CustomerID'])['InvoiceDate'].min()).apply(lambda x:x.days)
 
@@ -202,5 +210,47 @@ for i,j in enumerate(column):
     plt.xlabel('')
 plt.show()
 
-
+# -------------------------------------------------------
 # to-do cltv prediction 진행한 후 r/f/m 과의 관계성 살피기
+# Beta-Geometric(BG) fitting
+bgf = BetaGeoFitter(penalizer_coef=0.001)
+bgf.fit(rfm['Frequency'],rfm['Recency'],rfm['T']) # fit = fit dataset to a BG/NBD model
+
+# get expected # of purchases up to time T
+bgf.conditional_expected_number_of_purchases_up_to_time(1,rfm['Frequency'],rfm['Recency'],rfm['T'])\
+    .sort_values(ascending=False).head(10)
+
+# plot_period_transactions(bgf)
+# plt.show()
+
+# get parameter 1 = 1 week
+# get parameter 4 = 4 weeks = 1 month
+# predict = conditional_expected_number_of_purchases_up_to_time
+rfm["buy_1_week_pred"] = bgf.predict(1,rfm['Frequency'],rfm['Recency'],rfm['T'])
+rfm["buy_1_month_pred"] = bgf.predict(4,rfm['Frequency'],rfm['Recency'],rfm['T'])
+
+rfm.sort_values("buy_1_month_pred", ascending=False).head(10)
+
+# Gamma-Gamma fitting
+ggf = GammaGammaFitter(penalizer_coef=0.01)
+ggf.fit(rfm["Frequency"], rfm["Monetary"])
+
+# the conditional expectation of the average profit per transaction for a group of one or more customers
+ggf.conditional_expected_average_profit(rfm["Frequency"], rfm["Monetary"])
+
+rfm["expected_average_profit"] = ggf.conditional_expected_average_profit(rfm["Frequency"], rfm["Monetary"])
+
+cltv = ggf.customer_lifetime_value(bgf, rfm['Frequency'], rfm['Recency'], rfm['T'], rfm['Monetary'],
+ time=3, # 3 Months
+ freq='W', # Frequency of T ,in this case it is 'weekly'
+ discount_rate=0.01)
+
+# add cltv columns on rfm => cltv_final
+cltv = cltv.reset_index()
+cltv_final = rfm.merge(cltv, on="CustomerID", how="left")
+cltv_final.sort_values(by="clv", ascending=False).head()
+
+# segment customers with cltv value
+cltv_final["clv_segment"] = pd.qcut(cltv_final["clv"], 4, labels=["D", "C", "B", "A"])
+cltv_final.head()
+
