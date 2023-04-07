@@ -95,12 +95,10 @@ rfm = df.groupby(['CustomerID']).agg({
 
 
 rfm = rfm.rename(columns={'InvoiceDate':'Recency','InvoiceNo':'Frequency','SalesTotal':'Monetary'})
-
 rfm = rfm[rfm.Monetary > 0]
-
 T = (pin_date - df.groupby(['CustomerID'])['InvoiceDate'].min()).apply(lambda x:x.days)
 
-# 1,2,3,4 까지
+# rfm = 1,2,3,4 까지
 r_level = range(4,0,-1)
 f_level = range(1,5)
 m_level = range(1,5)
@@ -251,6 +249,11 @@ cltv_final = rfm.merge(cltv, on="CustomerID", how="left")
 cltv_final.sort_values(by="clv", ascending=False).head()
 
 # segment customers with cltv value
-cltv_final["clv_segment"] = pd.qcut(cltv_final["clv"], 4, labels=["D", "C", "B", "A"])
-cltv_final.head()
+cltv_final["clv_segment"] = pd.qcut(cltv_final["clv"], 5, labels=[0,1,2,3,4])
 
+
+segment = cltv_final[["clv_segment","customer_type"]]
+segment["clv_segment"] = segment["clv_segment"].astype(int)
+segment["clv_segment"] = segment["customer_type"].astype(int)
+# 두 개 넣는 거 그냥 plt, sns 로 해결해서 넣어야 할 듯 
+segment.head().plot(kind='bar')
