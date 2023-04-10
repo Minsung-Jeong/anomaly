@@ -1,4 +1,4 @@
-
+import numpy as np
 import pandas as pd
 import datetime as dt
 import matplotlib.pyplot as plt
@@ -15,12 +15,10 @@ from sklearn.preprocessing import MinMaxScaler
 df = pd.read_csv("C://data_minsung/kaggle/e_commerce/data.csv",encoding="ISO-8859-1",
                          dtype={'CustomerID': str,'InvoiceID': str})
 
-df.info()
-df.describe()
-df.head()
-
 df['InvoiceDate'] = pd.to_datetime(df['InvoiceDate'])
 df['InvoiceMonth'] = df['InvoiceDate'].apply(lambda x: dt.datetime(x.year, x.month,1))
+
+
 
 # 데이터의 추이 및 관계(봄,여름, 12월(크리스마스, 신년) 시즌에 높은 sales-> 영향 높은 변수는 unit price)
 # salesTotal : unit Price * Quantity
@@ -120,93 +118,94 @@ rfm['customer_type'] = pd.cut(rfm['RFM_Score'],
                               labels=[0,1,2,3,4])
 
 
-# 클러스터링 정독
-# https://www.kaggle.com/code/mittalvasu95/cohort-rfm-k-means#III.-k-Means-Clustering
-
-# copying the data into new variable
-df_kmeans = rfm.copy()
-
-
-# # taking only relevant columns
-# df_kmeans = df_kmeans.iloc[:,:3]
-df_kmeans = df_kmeans.reset_index()
-
-
-# Removing outliers for Monetary
-Q1 = df_kmeans.Monetary.quantile(0.05)
-Q3 = df_kmeans.Monetary.quantile(0.95)
-IQR = Q3 - Q1
-df_kmeans = df_kmeans[(df_kmeans.Monetary >= Q1 - 1.5*IQR) & (df_kmeans.Monetary <= Q3 + 1.5*IQR)]
-
-# Removing outliers for Recency
-Q1 = df_kmeans.Recency.quantile(0.05)
-Q3 = df_kmeans.Recency.quantile(0.95)
-IQR = Q3 - Q1
-df_kmeans = df_kmeans[(df_kmeans.Recency >= Q1 - 1.5*IQR) & (df_kmeans.Recency <= Q3 + 1.5*IQR)]
-
-# Removing outliers for Frequency
-Q1 = df_kmeans.Frequency.quantile(0.05)
-Q3 = df_kmeans.Frequency.quantile(0.95)
-IQR = Q3 - Q1
-df_kmeans = df_kmeans[(df_kmeans.Frequency >= Q1 - 1.5*IQR) & (df_kmeans.Frequency <= Q3 + 1.5*IQR)]
-
-
-# data plot after outlier removing
-plt.figure(figsize=(15,5))
-plt.subplot(1,3,1)
-plt.scatter(df_kmeans.Recency, df_kmeans.Frequency, color='grey', alpha=0.3)
-plt.title('x:Recency, y:Frequency', size=15)
-plt.subplot(1,3,2)
-plt.scatter(df_kmeans.Monetary, df_kmeans.Frequency, color='grey', alpha=0.3)
-plt.title('x:Monetary, y:Frequency', size=15)
-plt.subplot(1,3,3)
-plt.scatter(df_kmeans.Recency, df_kmeans.Monetary, color='grey', alpha=0.3)
-plt.title('x:Recency, y:Monetary', size=15)
-plt.show()
-
-# correlation : Monetary, Frequency have high correlation value
-import scipy.stats as stats
-stats.pearsonr(df_kmeans.Monetary, df_kmeans.Frequency)
-stats.pearsonr(df_kmeans.Recency, df_kmeans.Frequency)
-stats.pearsonr(df_kmeans.Recency, df_kmeans.Monetary)
-
-# removing customer id as it will not used in making cluster
-df_kmeans_id = df_kmeans.iloc[:,0]
-df_rfm_clustered = df_kmeans.customer_type
-df_kmeans = df_kmeans.iloc[:,1:4]
-
-# scaling the variables and store it in different df
-standard_scaler = StandardScaler()
-df_kmeans_norm = standard_scaler.fit_transform(df_kmeans)
-
-# converting it into dataframe
-df_kmeans_norm = pd.DataFrame(df_kmeans_norm)
-df_kmeans_norm.columns = ['recency','frequency','monetary']
-df_kmeans_norm.head()
-
-clustered = KMeans(n_clusters = 5)
-clustered.fit(df_kmeans_norm)
-
-df_kmeans['kmeans_clusters'] = clustered.labels_
-df_kmeans.head()
-
-df_kmeans['rfm_clustered'] = df_rfm_clustered
-
-# rfm 과 k-means clustering 의 상관성은 거의 없음
-stats.pearsonr(df_kmeans.rfm_clustered, df_kmeans.kmeans_clusters)
+# # 클러스터링 정독
+# # https://www.kaggle.com/code/mittalvasu95/cohort-rfm-k-means#III.-k-Means-Clustering
+#
+# # copying the data into new variable
+# df_kmeans = rfm.copy()
+#
+#
+# # # taking only relevant columns
+# # df_kmeans = df_kmeans.iloc[:,:3]
+# df_kmeans = df_kmeans.reset_index()
+#
+#
+# # Removing outliers for Monetary
+# Q1 = df_kmeans.Monetary.quantile(0.05)
+# Q3 = df_kmeans.Monetary.quantile(0.95)
+# IQR = Q3 - Q1
+# df_kmeans = df_kmeans[(df_kmeans.Monetary >= Q1 - 1.5*IQR) & (df_kmeans.Monetary <= Q3 + 1.5*IQR)]
+#
+# # Removing outliers for Recency
+# Q1 = df_kmeans.Recency.quantile(0.05)
+# Q3 = df_kmeans.Recency.quantile(0.95)
+# IQR = Q3 - Q1
+# df_kmeans = df_kmeans[(df_kmeans.Recency >= Q1 - 1.5*IQR) & (df_kmeans.Recency <= Q3 + 1.5*IQR)]
+#
+# # Removing outliers for Frequency
+# Q1 = df_kmeans.Frequency.quantile(0.05)
+# Q3 = df_kmeans.Frequency.quantile(0.95)
+# IQR = Q3 - Q1
+# df_kmeans = df_kmeans[(df_kmeans.Frequency >= Q1 - 1.5*IQR) & (df_kmeans.Frequency <= Q3 + 1.5*IQR)]
+#
+#
+# # data plot after outlier removing
+# plt.figure(figsize=(15,5))
+# plt.subplot(1,3,1)
+# plt.scatter(df_kmeans.Recency, df_kmeans.Frequency, color='grey', alpha=0.3)
+# plt.title('x:Recency, y:Frequency', size=15)
+# plt.subplot(1,3,2)
+# plt.scatter(df_kmeans.Monetary, df_kmeans.Frequency, color='grey', alpha=0.3)
+# plt.title('x:Monetary, y:Frequency', size=15)
+# plt.subplot(1,3,3)
+# plt.scatter(df_kmeans.Recency, df_kmeans.Monetary, color='grey', alpha=0.3)
+# plt.title('x:Recency, y:Monetary', size=15)
+# plt.show()
+#
+# # correlation : Monetary, Frequency have high correlation value
+# import scipy.stats as stats
+# stats.pearsonr(df_kmeans.Monetary, df_kmeans.Frequency)
+# stats.pearsonr(df_kmeans.Recency, df_kmeans.Frequency)
+# stats.pearsonr(df_kmeans.Recency, df_kmeans.Monetary)
+#
+# # removing customer id as it will not used in making cluster
+# df_kmeans_id = df_kmeans.iloc[:,0]
+# df_rfm_clustered = df_kmeans.customer_type
+# df_kmeans = df_kmeans.iloc[:,1:4]
+#
+# # scaling the variables and store it in different df
+# standard_scaler = StandardScaler()
+# df_kmeans_norm = standard_scaler.fit_transform(df_kmeans)
+#
+# # converting it into dataframe
+# df_kmeans_norm = pd.DataFrame(df_kmeans_norm)
+# df_kmeans_norm.columns = ['recency','frequency','monetary']
+# df_kmeans_norm.head()
+#
+# clustered = KMeans(n_clusters = 5)
+# clustered.fit(df_kmeans_norm)
+#
+# df_kmeans['kmeans_clusters'] = clustered.labels_
+# df_kmeans.head()
+#
+# df_kmeans['rfm_clustered'] = df_rfm_clustered
+#
+# # rfm 과 k-means clustering 의 상관성은 거의 없음
+# stats.pearsonr(df_kmeans.rfm_clustered, df_kmeans.kmeans_clusters)
 
 
 
 # k-means clustering 도 recency 보다는 freq, monetary 와 더 긴밀한 관계를 맺고 있음
-column = ['Recency','Frequency','Monetary']
-plt.figure(figsize=(15,4))
-for i,j in enumerate(column):
-    plt.subplot(1,3,i+1)
-    sns.boxplot(y=df_kmeans[j], x=df_kmeans['kmeans_clusters'], palette='spring')
-    plt.title('{} wrt clusters'.format(j.upper()), size=13)
-    plt.ylabel('')
-    plt.xlabel('')
-plt.show()
+
+# column = ['Recency','Frequency','Monetary']
+# plt.figure(figsize=(15,4))
+# for i,j in enumerate(column):
+#     plt.subplot(1,3,i+1)
+#     sns.boxplot(y=df_kmeans[j], x=df_kmeans['kmeans_clusters'], palette='spring')
+#     plt.title('{} wrt clusters'.format(j.upper()), size=13)
+#     plt.ylabel('')
+#     plt.xlabel('')
+# plt.show()
 
 # -------------------------------------------------------
 # to-do cltv prediction 진행한 후 r/f/m 과의 관계성 살피기
@@ -250,10 +249,35 @@ cltv_final.sort_values(by="clv", ascending=False).head()
 
 # segment customers with cltv value
 cltv_final["clv_segment"] = pd.qcut(cltv_final["clv"], 5, labels=[0,1,2,3,4])
+top_cltv = cltv_final.sort_values(by='clv', ascending=False).head(10)
+# top5_cltv.to_csv('C://data_minsung/kaggle/e_commerce/top5_cltv.csv')
 
+top_cltv['R'].astype('int').mean()
+top_cltv['F'].astype('int').mean()
+top_cltv['M'].astype('int').mean()
 
-segment = cltv_final[["clv_segment","customer_type"]]
-segment["clv_segment"] = segment["clv_segment"].astype(int)
-segment["clv_segment"] = segment["customer_type"].astype(int)
-# 두 개 넣는 거 그냥 plt, sns 로 해결해서 넣어야 할 듯 
-segment.head().plot(kind='bar')
+top_custom = top_cltv.CustomerID.values
+
+# cltv 상위 10개 손님에 대한 정보 추출
+country = []
+start = []
+unitPrice = []
+for x in top_custom:
+    country.append(df[df['CustomerID'] == x].Country.iloc[0])
+    start.append(df[df['CustomerID'] == x].startMonth.iloc[0])
+    unitPrice.append(df[df['CustomerID'] == x].UnitPrice.mean())
+
+#
+first_cus = df[df.startMonth == pd.to_datetime('2010-12-01')].groupby(['CustomerID']).min().reset_index().CustomerID.values
+
+first_cltv = np.zeros((1, len(cltv_final.columns)))
+
+for i in range(len(first_cus)):
+    # first_cltv.iloc[i] = cltv_final[cltv_final.CustomerID == first_cus[i]]
+    # first_cltv.append(cltv_final[cltv_final.CustomerID == first_cus[i]].values)
+    first_cltv = np.vstack([first_cltv, np.array(cltv_final[cltv_final.CustomerID == first_cus[i]].values)])
+
+first_cltv = pd.DataFrame(first_cltv, columns=cltv_final.columns)
+
+# first_cltv.describe().to_csv('C://data_minsung/kaggle/e_commerce/first_customer.csv')
+first_cltv[first_cltv.clv > 0].clv.mean()
