@@ -17,14 +17,14 @@ os.environ["SERPAPI_API_KEY"] = SERPAPI_API_KEY
 
 
 #@title 1. OpenAI LLM (text-davinci-003)
-from langchain.llms import OpenAI
+from langchain_1.llms import OpenAI
 llm = OpenAI(model_name='text-davinci-003', temperature=0.9)
 llm('1980년대 메탈 음악 5곡 추천해줘.')
 
 
 #@title 2. ChatOpenAI LLM (gpt-3.5-turbo)
-from langchain.chat_models import ChatOpenAI
-from langchain.schema import (
+from langchain_1.chat_models import ChatOpenAI
+from langchain_1.schema import (
     AIMessage,
     HumanMessage,
     SystemMessage
@@ -40,7 +40,7 @@ aimsg.content
 
 #@title 3. Prompt Template & chain
 
-from langchain.prompts import PromptTemplate
+from langchain_1.prompts import PromptTemplate
 
 prompt = PromptTemplate(
     input_variables=["상품"],
@@ -49,7 +49,7 @@ prompt = PromptTemplate(
 
 prompt.format(상품="AI 여행 추천 서비스")
 
-from langchain.chains import LLMChain
+from langchain_1.chains import LLMChain
 chain = LLMChain(llm=chat, prompt=prompt)
 
 # chain.run("AI 여행 추천 서비스")
@@ -58,8 +58,8 @@ chain.run(상품="AI 여행 추천 서비스")
 
 #@title 4. ChatPromptTemplate & chain
 
-from langchain.chat_models import ChatOpenAI
-from langchain.prompts.chat import (
+from langchain_1.chat_models import ChatOpenAI
+from langchain_1.prompts.chat import (
     ChatPromptTemplate,
     SystemMessagePromptTemplate,
     HumanMessagePromptTemplate,
@@ -80,9 +80,9 @@ chatchain.run(input_language="English", output_language="Korean", text="I love p
 
 #@title 5. Agents and Tools
 
-from langchain.agents import load_tools
-from langchain.agents import initialize_agent
-from langchain.agents import AgentType
+from langchain_1.agents import load_tools
+from langchain_1.agents import initialize_agent
+from langchain_1.agents import AgentType
 
 # tools = load_tools(["serpapi", "llm-math"], llm=chat)
 tools = load_tools(["wikipedia", "llm-math"], llm=chat)
@@ -96,7 +96,7 @@ print(agent.tools[1].description)
 
 
 #@title 6. Memory
-from langchain import ConversationChain
+from langchain_1 import ConversationChain
 
 conversation = ConversationChain(llm=chat, verbose=True)
 conversation.predict(input="인공지능에서 Transformer가 뭐야?")
@@ -111,11 +111,11 @@ conversation.memory
 # 여기서 부터는 문서를 저장하고 임베딩 만들어서 VectorDB에 저장하고 사용하는 과정
 
 #@title 7. Document Loaders
-from langchain.document_loaders import WebBaseLoader
+from langchain_1.document_loaders import WebBaseLoader
 loader = WebBaseLoader(web_path="https://ko.wikipedia.org/wiki/NewJeans")
 documents = loader.load()
 
-from langchain.text_splitter import CharacterTextSplitter
+from langchain_1.text_splitter import CharacterTextSplitter
 text_splitter = CharacterTextSplitter(chunk_size=1000, chunk_overlap=0)
 docs = text_splitter.split_documents(documents)
 len(docs)
@@ -127,19 +127,19 @@ print(docs[1].page_content)
 
 
 #@title 8. Summarization
-from langchain.chains.summarize import load_summarize_chain
+from langchain_1.chains.summarize import load_summarize_chain
 chain = load_summarize_chain(chat, chain_type="map_reduce", verbose=True)
 chain.run(docs[:3])
 
 #@title 9. Embeddings and VectorStore
-from langchain.embeddings import HuggingFaceEmbeddings
-from langchain.embeddings import OpenAIEmbeddings
+from langchain_1.embeddings import HuggingFaceEmbeddings
+from langchain_1.embeddings import OpenAIEmbeddings
 
 # embeddings = OpenAIEmbeddings()
 embeddings = HuggingFaceEmbeddings()
 
-from langchain.indexes import VectorstoreIndexCreator
-from langchain.vectorstores import FAISS
+from langchain_1.indexes import VectorstoreIndexCreator
+from langchain_1.vectorstores import FAISS
 
 # from langchain.text_splitter import RecursiveCharacterTextSplitter
 # text_splitter = RecursiveCharacterTextSplitter(chunk_size=1000, chunk_overlap=0)
