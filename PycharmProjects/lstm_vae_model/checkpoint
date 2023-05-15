@@ -1,0 +1,2 @@
+model_checkpoint_path: "lstm_vae_ckpt"
+all_model_checkpoint_paths: "lstm_vae_ckpt"

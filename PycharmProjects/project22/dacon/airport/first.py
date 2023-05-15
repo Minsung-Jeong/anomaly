@@ -58,3 +58,40 @@ df['Carrier_Code(IATA)'], airline_dict = convert_cat('Carrier_Code(IATA)')
 
 df['Tail_Number'], airline_dict = convert_cat('Tail_Number')
 df['Delay'], airline_dict = convert_cat('Delay')
+
+
+
+# ------------------------
+from collections import deque
+temp = [4,1,2,4]
+temp = sorted(temp)
+print(temp)
+
+idx = len(temp) // 2
+low = deque(temp[:idx])
+high = deque(temp[idx:])
+print(low)
+print(high)
+
+li = []
+
+for i in range(len(temp)):
+    if i == 0:
+        li.append(high.popleft())
+    else:
+        if i % 2 == 0:
+            li.append(li[-1] + high.popleft())
+        else:
+            li.append(li[-1] + low.popleft())
+
+num = 0
+for i in range(len(li)):
+    if i%2 == 0:
+        num += li[i]
+    else:
+        num -= li[i]
+
+print(num)
+
+# 숫자로 만들 수 잇는 경우의 수와 그것의 총합
+str(100)

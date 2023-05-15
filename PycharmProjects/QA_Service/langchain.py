@@ -1,15 +1,15 @@
 #@title 0. API 키 설정
 import os
 #@markdown https://platform.openai.com/account/api-keys
-OPENAI_API_KEY = "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" #@param {type:"string"}
+OPENAI_API_KEY = "" #@param {type:"string"}
 
 #@markdown https://huggingface.co/settings/tokens
 #@markdown HuggingFace에서 모델 다운로드나 클라우드 모델 사용하기 위해서 필요 (무료)
-HUGGINGFACEHUB_API_TOKEN = "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" #@param {type:"string"}
+HUGGINGFACEHUB_API_TOKEN = "" #@param {type:"string"}
 
 #@markdown https://serpapi.com/manage-api-key
 #@markdown 구글 검색하기 위해서 필요 (월 100회 무료)
-SERPAPI_API_KEY = "2b01286aa7153594404394e777ac125688f4a1c991bc671c61f3b9fe7020eec1" #@param {type:"string"}
+SERPAPI_API_KEY = "" #@param {type:"string"}
 
 os.environ["OPENAI_API_KEY"] = OPENAI_API_KEY
 os.environ["HUGGINGFACEHUB_API_TOKEN"] = HUGGINGFACEHUB_API_TOKEN
@@ -17,9 +17,9 @@ os.environ["SERPAPI_API_KEY"] = SERPAPI_API_KEY
 
 
 #@title 1. OpenAI LLM (text-davinci-003)
-# from langchain.llms import OpenAI
-# llm = OpenAI(model_name='text-davinci-003', temperature=0.9)
-# llm('1980년대 메탈 음악 5곡 추천해줘.')
+from langchain.llms import OpenAI
+llm = OpenAI(model_name='text-davinci-003', temperature=0.9)
+llm('1980년대 메탈 음악 5곡 추천해줘.')
 
 
 #@title 2. ChatOpenAI LLM (gpt-3.5-turbo)
