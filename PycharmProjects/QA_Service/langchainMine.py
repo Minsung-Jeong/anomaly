@@ -100,7 +100,7 @@ pred = index2.query(question, llm=chat, verbose=True)
 
 # ------------------------
 retriever = index.vectorstore.as_retriever(search_kwargs=dict(k=1))
-memory = VectorS
+memory = Vector~~~
 examples = [
     {
         "question" : question,
@@ -108,6 +108,13 @@ examples = [
     }
 ]
 
-# evaluation 하기 위해서는 llmchain 필요하지만 vectorStoreIndexWrapper 지원여부
+# evaluation 하기 위해서는 llmchain 필요(vectorstore -> retriever 생성 -> llm
+"""
+예시
+faiss 통해 vectorstore 생성
+retriever = vectorstore.as_retriever(search_kwargs=dict(k=1))
+memory = VectorStoreRetrieverMemory(retriever=retriever)
+LLMChain(llm=llm, prompt=prompt, verbose=True, memory=memory)
+"""
 eval_chain = QAEvalChain.from_llm(chat)
 
