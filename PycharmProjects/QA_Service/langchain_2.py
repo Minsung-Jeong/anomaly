@@ -16,8 +16,8 @@ from langchain.prompts.chat import (
 )
 
 OPENAI_API_KEY = "sk-" #@param {type:"string"}
-HUGGINGFACEHUB_API_TOKEN = "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" #@param {type:"string"}
-SERPAPI_API_KEY = "2b01286aa7153594404394e777ac125688f4a1c991bc671c61f3b9fe7020eec1" #@param {type:"string"}
+HUGGINGFACEHUB_API_TOKEN = "" #@param {type:"string"}
+SERPAPI_API_KEY = "" #@param {type:"string"}
 
 os.environ["OPENAI_API_KEY"] = OPENAI_API_KEY
 os.environ["HUGGINGFACEHUB_API_TOKEN"] = HUGGINGFACEHUB_API_TOKEN
